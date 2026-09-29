@@ -1,1 +1,9 @@
-{"name":"瑞賢禮儀社｜案件管理系統","short_name":"瑞賢禮儀社","start_url":"./","display":"standalone","background_color":"#f4f6f8","theme_color":"#17324d","lang":"zh-Hant-TW"}
+{
+  "name": "瑞賢禮儀社",
+  "short_name": "瑞賢禮儀社",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#1f2937",
+  "lang": "zh-Hant-TW"
+}

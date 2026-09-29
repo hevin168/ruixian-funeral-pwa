@@ -1,4 +1,88 @@
-<!doctype html><html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#17324d"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="瑞賢禮儀社"><link rel="manifest" href="manifest.json"><title>瑞賢禮儀社｜案件管理</title><link rel="stylesheet" href="styles.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script></head><body>
-<section id="login" class="login"><div class="box"><div class="logo">瑞</div><h1>瑞賢禮儀社</h1><p>殯葬案件管理系統</p><form id="loginForm"><input id="email" type="email" placeholder="電子信箱" required><input id="password" type="password" placeholder="密碼" required><button>登入</button></form><div id="msg"></div></div></section>
-<section id="main" class="hide"><header><b>瑞賢禮儀社</b><span id="role"></span><button id="logout">登出</button></header><main><p id="user"></p><nav><button data-page="home">首頁</button><button data-page="customers">客戶</button><button data-page="cases">案件</button><button data-page="finance">財務</button><button data-page="schedules">行程</button><button data-page="staff" id="staffNav">員工</button></nav><div id="content"></div></main></section>
-<script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f2937">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>瑞賢禮儀社</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="app">
+    <section id="loginView" class="card login-card">
+      <div class="brand">瑞賢禮儀社</div>
+      <div class="subtitle">殯葬案件管理系統</div>
+      <h1>登入</h1>
+      <label>電子郵件<input id="email" type="email" autocomplete="username" placeholder="請輸入電子郵件"></label>
+      <label>密碼<input id="password" type="password" autocomplete="current-password" placeholder="請輸入密碼"></label>
+      <button id="loginBtn" class="primary">登入</button>
+      <div id="loginStatus" class="status" aria-live="polite"></div>
+    </section>
+
+    <section id="mainView" hidden>
+      <header class="topbar">
+        <div>
+          <div class="brand small">瑞賢禮儀社</div>
+          <div id="userInfo" class="muted"></div>
+        </div>
+        <button id="logoutBtn" class="secondary">登出</button>
+      </header>
+
+      <nav class="tabs">
+        <button data-tab="dashboard" class="tab active">總覽</button>
+        <button data-tab="customers" class="tab">客戶</button>
+        <button data-tab="cases" class="tab">案件</button>
+        <button data-tab="finance" class="tab">財務</button>
+        <button data-tab="schedules" class="tab">行程</button>
+        <button data-tab="staff" class="tab">員工</button>
+      </nav>
+
+      <section id="dashboard" class="panel">
+        <h2>案件總覽</h2>
+        <div class="stats">
+          <div class="stat"><span>客戶</span><b id="customerCount">0</b></div>
+          <div class="stat"><span>案件</span><b id="caseCount">0</b></div>
+          <div class="stat"><span>待處理款項</span><b id="pendingFinanceCount">0</b></div>
+        </div>
+        <button id="refreshBtn" class="secondary">重新整理雲端資料</button>
+        <div id="dashboardStatus" class="status"></div>
+      </section>
+
+      <section id="customers" class="panel" hidden>
+        <div class="section-head"><h2>客戶管理</h2><button id="addCustomerBtn" class="primary">新增客戶</button></div>
+        <div id="customerList" class="list"></div>
+      </section>
+
+      <section id="cases" class="panel" hidden>
+        <div class="section-head"><h2>案件管理</h2><button id="addCaseBtn" class="primary">新增案件</button></div>
+        <div id="caseList" class="list"></div>
+      </section>
+
+      <section id="finance" class="panel" hidden>
+        <h2>財務</h2>
+        <p class="muted">付款與支出會依照 Supabase 權限規則控制。財務資料不提供前端硬刪除。</p>
+        <div class="section-head"><h3>付款</h3><button id="addPaymentBtn" class="primary">新增付款</button></div>
+        <div id="paymentList" class="list"></div>
+        <div class="section-head"><h3>支出</h3><button id="addExpenseBtn" class="primary">新增支出</button></div>
+        <div id="expenseList" class="list"></div>
+      </section>
+
+      <section id="schedules" class="panel" hidden>
+        <div class="section-head"><h2>行程</h2><button id="addScheduleBtn" class="primary">新增行程</button></div>
+        <div id="scheduleList" class="list"></div>
+      </section>
+
+      <section id="staff" class="panel" hidden>
+        <h2>員工</h2>
+        <p class="muted">員工帳號與角色由 Supabase Auth + staff_profiles 管理。只有負責人可管理員工資料。</p>
+        <div id="staffList" class="list"></div>
+      </section>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
