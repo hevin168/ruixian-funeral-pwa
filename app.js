@@ -1,2 +1,5 @@
-alert("瑞賢禮儀社測試成功");
-console.log("瑞賢禮儀社 JS 正常執行");
+alert("第1關：JS正常");
+
+alert(typeof window.supabase);
+
+alert("第2關：Supabase載入完成");
