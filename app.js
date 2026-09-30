@@ -1,4 +1,4 @@
-/* 瑞賢禮儀社 PWA 登入測試版 */
+alert("瑞賢禮儀社新版 app.js 已載入");
 
 “use strict”;
 
