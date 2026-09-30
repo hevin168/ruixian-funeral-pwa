@@ -1,54 +1,22 @@
-const SUPABASE_URL = "https://zjetemcqysvpbnyvpyma.supabase.co";
-const SUPABASE_KEY = "sb_publishable_jdeKO7PxDMGjAg_qCFw5FA_wr5OJcei";
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
-const loginBtn = document.getElementById("loginBtn");
-const emailInput = document.getElementById("email");
-const passwordInput = document.getElementById("password");
-const loginStatus = document.getElementById("loginStatus");
-
-loginBtn.onclick = async function () {
-
-  const email = emailInput.value.trim();
-  const password = passwordInput.value;
-
-  if (!email || !password) {
-    loginStatus.textContent = "請輸入電子郵件和密碼";
-    return;
-  }
-
-  loginBtn.disabled = true;
-  loginStatus.textContent = "登入中……";
-
-  try {
-
-    const result = await supabaseClient.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-    if (result.error) {
-      loginStatus.textContent =
-        "登入失敗：" + result.error.message;
-      loginBtn.disabled = false;
-      return;
-    }
-
-    loginStatus.textContent = "登入成功！";
-
-    document.getElementById("loginView").hidden = true;
-    document.getElementById("mainView").hidden = false;
-
-  } catch (error) {
-
-    loginStatus.textContent =
-      "系統錯誤：" + error.message;
-
-  }
-
-  loginBtn.disabled = false;
-};
+const KEY="ruixian_funeral_data_v3",SESSION="ruixian_funeral_session_v3";
+const defaults={customers:[],cases:[],payments:[],expenses:[],schedules:[],staff:[{id:"owner",name:"瑞賢禮儀社負責人",account:"owner",password:"123456",role:"負責人",active:true}]};
+let data=load(),session=localStorage.getItem(SESSION);const $=id=>document.getElementById(id);const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);const today=()=>new Date().toISOString().slice(0,10);const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(!x)return JSON.parse(JSON.stringify(defaults));return{customers:x.customers||[],cases:x.cases||[],payments:x.payments||[],expenses:x.expenses||[],schedules:x.schedules||[],staff:x.staff?.length?x.staff:JSON.parse(JSON.stringify(defaults.staff))}}catch(e){return JSON.parse(JSON.stringify(defaults))}}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function enter(){$("loginView").hidden=true;$("mainView").hidden=false;const s=data.staff.find(x=>x.id===session);$("staffInfo").textContent=s?`${s.name}｜${s.role}`:"";render()}
+function login(){const a=$("loginAccount").value.trim(),p=$("loginPassword").value,s=data.staff.find(x=>x.account===a&&x.password===p&&x.active!==false);if(!s){$("loginMsg").textContent="帳號或密碼錯誤。";return}session=s.id;localStorage.setItem(SESSION,session);$("loginMsg").textContent="";enter()}
+function logout(){session=null;localStorage.removeItem(SESSION);$("mainView").hidden=true;$("loginView").hidden=false}
+$("loginBtn").onclick=login;$("loginPassword").onkeydown=e=>{if(e.key==="Enter")login()};$("logoutBtn").onclick=logout;
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".panel").forEach(x=>x.hidden=true);$(b.dataset.tab).hidden=false});
+const key={customer:"customers",case:"cases",payment:"payments",expense:"expenses",schedule:"schedules",staff:"staff"};
+function render(){ $("customerCount").textContent=data.customers.length;$("caseCount").textContent=data.cases.length;$("paymentCount").textContent=data.payments.length;$("expenseCount").textContent=data.expenses.length;list("customerList",data.customers,"customer");list("caseList",data.cases,"case");list("paymentList",data.payments,"payment");list("expenseList",data.expenses,"expense");list("scheduleList",data.schedules,"schedule");list("staffList",data.staff,"staff")}
+function list(id,a,t){const el=$(id);if(!a.length){el.innerHTML='<div class="empty">目前沒有資料</div>';return}el.innerHTML=a.slice().reverse().map(x=>{let title,meta;if(t==="customer"){title=x.name||"未命名客戶";meta=`電話：${x.phone||"—"}\n地址：${x.address||"—"}\n備註：${x.note||"—"}`}if(t==="case"){title=x.caseNo||"未編號案件";meta=`亡者：${x.name||"—"}\n家屬：${x.family||"—"}\n日期：${x.date||"—"}\n狀態：${x.status||"—"}\n備註：${x.note||"—"}`}if(t==="payment"){title=`${x.caseNo||"未指定案件"}｜${Number(x.amount||0).toLocaleString()} 元`;meta=`日期：${x.date||"—"}\n項目：${x.item||"—"}\n備註：${x.note||"—"}`}if(t==="expense"){title=`${x.item||"支出"}｜${Number(x.amount||0).toLocaleString()} 元`;meta=`日期：${x.date||"—"}\n案件：${x.caseNo||"—"}\n備註：${x.note||"—"}`}if(t==="schedule"){title=x.title||"未命名行程";meta=`日期：${x.date||"—"} ${x.time||""}\n地點：${x.place||"—"}\n備註：${x.note||"—"}`}if(t==="staff"){title=x.name||"未命名員工";meta=`帳號：${x.account||"—"}\n角色：${x.role||"—"}\n狀態：${x.active===false?"停用":"啟用"}`}return `<div class="item"><div class="item-title">${esc(title)}</div><div class="item-meta">${esc(meta)}</div><div class="item-actions"><button class="secondary" onclick="editItem('${t}','${x.id}')">編輯</button><button class="danger" onclick="deleteItem('${t}','${x.id}')">刪除</button></div></div>`}).join("")}
+const specs={customer:{title:"客戶",fields:[["name","姓名","text",1],["phone","電話","tel"],["address","地址","text"],["note","備註","textarea"]]},case:{title:"案件",fields:[["caseNo","案件編號","text",1],["name","亡者姓名","text",1],["family","家屬","text"],["date","日期","date"],["status","案件狀態","text"],["note","備註","textarea"]]},payment:{title:"付款",fields:[["caseNo","案件編號","text"],["amount","金額","number"],["date","日期","date"],["item","付款項目","text"],["note","備註","textarea"]]},expense:{title:"支出",fields:[["caseNo","案件編號","text"],["amount","金額","number"],["date","日期","date"],["item","支出項目","text"],["note","備註","textarea"]]},schedule:{title:"行程",fields:[["title","行程名稱","text",1],["date","日期","date"],["time","時間","time"],["place","地點","text"],["note","備註","textarea"]]},staff:{title:"員工",fields:[["name","姓名","text",1],["account","登入帳號","text",1],["password","登入密碼","text",1],["role","角色","text"],["active","狀態","select"]]}};
+function form(t,o){const s=specs[t];let h=`<div class="modal" id="modal"><div class="dialog"><h2>${o?"編輯":"新增"}${s.title}</h2>`;s.fields.forEach(([k,l,ty,req])=>{let v=o?.[k]??(k==="date"?today():(k==="active"?"true":""));h+=ty==="textarea"?`<label>${l}<textarea id="f_${k}">${esc(v)}</textarea></label>`:ty==="select"?`<label>${l}<select id="f_${k}"><option value="true" ${v!==false?"selected":""}>啟用</option><option value="false" ${v===false?"selected":""}>停用</option></select></label>`:`<label>${l}<input id="f_${k}" type="${ty}" value="${esc(v)}" ${req?"required":""}></label>`});h+=`<div class="dialog-actions"><button class="secondary" onclick="closeModal()">取消</button><button class="primary" onclick="saveForm('${t}','${o?.id||""}')">儲存</button></div></div></div>`;document.body.insertAdjacentHTML("beforeend",h)}
+function closeModal(){$("modal")?.remove()}
+function saveForm(t,id){const s=specs[t],o={id:id||uid()};for(const [k,l,ty,req] of s.fields){let v=$("f_"+k).value;if(req&&!v.trim()){alert(`請填寫${l}`);return}if(k==="amount")v=Number(v||0);if(k==="active")v=v==="true";o[k]=v}const a=data[key[t]];if(t==="staff"&&a.some(x=>x.account===o.account&&x.id!==o.id)){alert("登入帳號已存在");return}const i=a.findIndex(x=>x.id===o.id);i>=0?a[i]=o:a.push(o);closeModal();save()}
+function editItem(t,id){const o=data[key[t]].find(x=>x.id===id);if(o)form(t,o)}function deleteItem(t,id){if(t==="staff"&&id==="owner"){alert("負責人帳號不能刪除");return}if(!confirm("確定要刪除這筆資料嗎？"))return;data[key[t]]=data[key[t]].filter(x=>x.id!==id);save()}
+["Customer","Case","Payment","Expense","Schedule","Staff"].forEach(n=>$("add"+n+"Btn").onclick=()=>form(n.toLowerCase()==="customer"?"customer":n.toLowerCase()==="case"?"case":n.toLowerCase()==="payment"?"payment":n.toLowerCase()==="expense"?"expense":n.toLowerCase()==="schedule"?"schedule":"staff"));
+$("backupBtn").onclick=()=>{const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download=`瑞賢禮儀社備份_${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)};
+$("restoreBtn").onclick=()=>$("restoreFile").click();$("restoreFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);data={customers:x.customers||[],cases:x.cases||[],payments:x.payments||[],expenses:x.expenses||[],schedules:x.schedules||[],staff:x.staff?.length?x.staff:defaults.staff};save();alert("資料匯入完成")}catch(_){alert("備份檔格式不正確")}};r.readAsText(f)};
+window.editItem=editItem;window.deleteItem=deleteItem;window.saveForm=saveForm;window.closeModal=closeModal;if(session&&data.staff.some(x=>x.id===session&&x.active!==false))enter();
