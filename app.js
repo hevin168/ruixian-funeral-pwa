@@ -1,140 +1,56 @@
-const KEY="ruixian_funeral_data_v3",SESSION="ruixian_funeral_session_v3";
-const defaults={customers:[],cases:[],payments:[],expenses:[],schedules:[],staff:[{id:"owner",name:"瑞賢禮儀社負責人",account:"owner",password:"123456",role:"負責人",active:true}]};
-let data=load(),session=localStorage.getItem(SESSION);const $=id=>document.getElementById(id);const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);const today=()=>new Date().toISOString().slice(0,10);const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(!x)return JSON.parse(JSON.stringify(defaults));return{customers:x.customers||[],cases:x.cases||[],payments:x.payments||[],expenses:x.expenses||[],schedules:x.schedules||[],staff:x.staff?.length?x.staff:JSON.parse(JSON.stringify(defaults.staff))}}catch(e){return JSON.parse(JSON.stringify(defaults))}}
+const KEY="ruixian_funeral_data_v2",SESSION="ruixian_funeral_session_v2",OWNER="ruixian_owner_account_v1";
+const DEF={customers:[],cases:[],payments:[],expenses:[],schedules:[],staff:[{id:"owner",name:"瑞賢禮儀社負責人",account:"owner",password:"123456",role:"負責人",active:true}]};
+let data=(()=>{try{return {...DEF,...JSON.parse(localStorage.getItem(KEY))}}catch(e){return structuredClone(DEF)}})();
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const date=()=>new Date().toISOString().slice(0,10);
+function owner(){try{let x=JSON.parse(localStorage.getItem(OWNER));if(x)return x}catch(e){}return{account:"owner",password:"123456"}}
 function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
-function enter(){$("loginView").hidden=true;$("mainView").hidden=false;const s=data.staff.find(x=>x.id===session);$("staffInfo").textContent=s?`${s.name}｜${s.role}`:"";render()}
-function login(){const a=$("loginAccount").value.trim(),p=$("loginPassword").value,s=data.staff.find(x=>x.account===a&&x.password===p&&x.active!==false);if(!s){$("loginMsg").textContent="帳號或密碼錯誤。";return}session=s.id;localStorage.setItem(SESSION,session);$("loginMsg").textContent="";enter()}
-function logout(){session=null;localStorage.removeItem(SESSION);$("mainView").hidden=true;$("loginView").hidden=false}
-$("loginBtn").onclick=login;$("loginPassword").onkeydown=e=>{if(e.key==="Enter")login()};$("logoutBtn").onclick=logout;
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.querySelectorAll(".panel").forEach(x=>x.hidden=true);$(b.dataset.tab).hidden=false});
-const key={customer:"customers",case:"cases",payment:"payments",expense:"expenses",schedule:"schedules",staff:"staff"};
-function render(){ $("customerCount").textContent=data.customers.length;$("caseCount").textContent=data.cases.length;$("paymentCount").textContent=data.payments.length;$("expenseCount").textContent=data.expenses.length;list("customerList",data.customers,"customer");list("caseList",data.cases,"case");list("paymentList",data.payments,"payment");list("expenseList",data.expenses,"expense");list("scheduleList",data.schedules,"schedule");list("staffList",data.staff,"staff")}
-function list(id,a,t){const el=$(id);if(!a.length){el.innerHTML='<div class="empty">目前沒有資料</div>';return}el.innerHTML=a.slice().reverse().map(x=>{let title,meta;if(t==="customer"){title=x.name||"未命名客戶";meta=`電話：${x.phone||"—"}\n地址：${x.address||"—"}\n備註：${x.note||"—"}`}if(t==="case"){title=x.caseNo||"未編號案件";meta=`亡者：${x.name||"—"}\n家屬：${x.family||"—"}\n日期：${x.date||"—"}\n狀態：${x.status||"—"}\n備註：${x.note||"—"}`}if(t==="payment"){title=`${x.caseNo||"未指定案件"}｜${Number(x.amount||0).toLocaleString()} 元`;meta=`日期：${x.date||"—"}\n項目：${x.item||"—"}\n備註：${x.note||"—"}`}if(t==="expense"){title=`${x.item||"支出"}｜${Number(x.amount||0).toLocaleString()} 元`;meta=`日期：${x.date||"—"}\n案件：${x.caseNo||"—"}\n備註：${x.note||"—"}`}if(t==="schedule"){title=x.title||"未命名行程";meta=`日期：${x.date||"—"} ${x.time||""}\n地點：${x.place||"—"}\n備註：${x.note||"—"}`}if(t==="staff"){title=x.name||"未命名員工";meta=`帳號：${x.account||"—"}\n角色：${x.role||"—"}\n狀態：${x.active===false?"停用":"啟用"}`}return `<div class="item"><div class="item-title">${esc(title)}</div><div class="item-meta">${esc(meta)}</div><div class="item-actions"><button class="secondary" onclick="editItem('${t}','${x.id}')">編輯</button><button class="danger" onclick="deleteItem('${t}','${x.id}')">刪除</button></div></div>`}).join("")}
-const specs={customer:{title:"客戶",fields:[["name","姓名","text",1],["phone","電話","tel"],["address","地址","text"],["note","備註","textarea"]]},case:{title:"案件",fields:[["caseNo","案件編號","text",1],["name","亡者姓名","text",1],["family","家屬","text"],["date","日期","date"],["status","案件狀態","text"],["note","備註","textarea"]]},payment:{title:"付款",fields:[["caseNo","案件編號","text"],["amount","金額","number"],["date","日期","date"],["item","付款項目","text"],["note","備註","textarea"]]},expense:{title:"支出",fields:[["caseNo","案件編號","text"],["amount","金額","number"],["date","日期","date"],["item","支出項目","text"],["note","備註","textarea"]]},schedule:{title:"行程",fields:[["title","行程名稱","text",1],["date","日期","date"],["time","時間","time"],["place","地點","text"],["note","備註","textarea"]]},staff:{title:"員工",fields:[["name","姓名","text",1],["account","登入帳號","text",1],["password","登入密碼","text",1],["role","角色","text"],["active","狀態","select"]]}};
-function form(t,o){const s=specs[t];let h=`<div class="modal" id="modal"><div class="dialog"><h2>${o?"編輯":"新增"}${s.title}</h2>`;s.fields.forEach(([k,l,ty,req])=>{let v=o?.[k]??(k==="date"?today():(k==="active"?"true":""));h+=ty==="textarea"?`<label>${l}<textarea id="f_${k}">${esc(v)}</textarea></label>`:ty==="select"?`<label>${l}<select id="f_${k}"><option value="true" ${v!==false?"selected":""}>啟用</option><option value="false" ${v===false?"selected":""}>停用</option></select></label>`:`<label>${l}<input id="f_${k}" type="${ty}" value="${esc(v)}" ${req?"required":""}></label>`});h+=`<div class="dialog-actions"><button class="secondary" onclick="closeModal()">取消</button><button class="primary" onclick="saveForm('${t}','${o?.id||""}')">儲存</button></div></div></div>`;document.body.insertAdjacentHTML("beforeend",h)}
-function closeModal(){$("modal")?.remove()}
-function saveForm(t,id){const s=specs[t],o={id:id||uid()};for(const [k,l,ty,req] of s.fields){let v=$("f_"+k).value;if(req&&!v.trim()){alert(`請填寫${l}`);return}if(k==="amount")v=Number(v||0);if(k==="active")v=v==="true";o[k]=v}const a=data[key[t]];if(t==="staff"&&a.some(x=>x.account===o.account&&x.id!==o.id)){alert("登入帳號已存在");return}const i=a.findIndex(x=>x.id===o.id);i>=0?a[i]=o:a.push(o);closeModal();save()}
-function editItem(t,id){const o=data[key[t]].find(x=>x.id===id);if(o)form(t,o)}function deleteItem(t,id){if(t==="staff"&&id==="owner"){alert("負責人帳號不能刪除");return}if(!confirm("確定要刪除這筆資料嗎？"))return;data[key[t]]=data[key[t]].filter(x=>x.id!==id);save()}
-["Customer","Case","Payment","Expense","Schedule","Staff"].forEach(n=>$("add"+n+"Btn").onclick=()=>form(n.toLowerCase()==="customer"?"customer":n.toLowerCase()==="case"?"case":n.toLowerCase()==="payment"?"payment":n.toLowerCase()==="expense"?"expense":n.toLowerCase()==="schedule"?"schedule":"staff"));
-$("backupBtn").onclick=()=>{const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download=`瑞賢禮儀社備份_${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)};
-$("restoreBtn").onclick=()=>$("restoreFile").click();$("restoreFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);data={customers:x.customers||[],cases:x.cases||[],payments:x.payments||[],expenses:x.expenses||[],schedules:x.schedules||[],staff:x.staff?.length?x.staff:defaults.staff};save();alert("資料匯入完成")}catch(_){alert("備份檔格式不正確")}};r.readAsText(f)};
-window.editItem=editItem;window.deleteItem=deleteItem;window.saveForm=saveForm;window.closeModal=closeModal;if(session&&data.staff.some(x=>x.id===session&&x.active!==false))enter();
-
-/* 瑞賢禮儀社：負責人帳號／密碼管理 */
-(function(){
-  function ownerKey(){return "ruixian_owner_account_v1";}
-  function getOwner(){
-    try{
-      const x=JSON.parse(localStorage.getItem(ownerKey())||"null");
-      if(x && x.account && x.password) return x;
-    }catch(e){}
-    return {account:"owner",password:"123456"};
-  }
-  function saveOwner(x){localStorage.setItem(ownerKey(),JSON.stringify(x));}
-
-  // 若原系統的登入事件已存在，這裡只在使用預設帳號時提供相容處理。
-  const originalLogin=document.getElementById("loginBtn");
-  if(originalLogin){
-    originalLogin.addEventListener("click",function(){
-      const o=getOwner();
-      const a=document.getElementById("loginAccount")?.value.trim();
-      const p=document.getElementById("loginPassword")?.value;
-      if(a===o.account && p===o.password){
-        try{
-          localStorage.setItem("ruixian_owner_login","1");
-        }catch(e){}
-      }
-    },true);
-  }
-
-  function addButton(){
-    const staff=document.getElementById("staff");
-    if(!staff || document.getElementById("ownerAccountBtn")) return;
-    const box=document.createElement("div");
-    box.className="item";
-    box.innerHTML='<div class="item-title">負責人登入帳號</div><div class="item-meta">可修改負責人的登入帳號與密碼。</div><div class="item-actions"><button id="ownerAccountBtn" class="primary">修改帳號／密碼</button></div>';
-    const list=staff.querySelector(".list");
-    if(list) list.insertBefore(box,list.firstChild);
-    document.getElementById("ownerAccountBtn").onclick=openOwnerForm;
-  }
-
-  function openOwnerForm(){
-    const o=getOwner();
-    const old=document.getElementById("ownerModal");
-    if(old)old.remove();
-    const div=document.createElement("div");
-    div.id="ownerModal";
-    div.className="modal";
-    div.innerHTML=`
-      <div class="dialog">
-        <h2>修改負責人帳號／密碼</h2>
-        <label>新帳號<input id="ownerNewAccount" value="${escSafe(o.account)}" autocomplete="username"></label>
-        <label>目前密碼<input id="ownerOldPassword" type="password" autocomplete="current-password" placeholder="請輸入目前密碼"></label>
-        <label>新密碼<input id="ownerNewPassword" type="password" autocomplete="new-password" placeholder="至少 6 碼"></label>
-        <label>再次輸入新密碼<input id="ownerNewPassword2" type="password" autocomplete="new-password"></label>
-        <div class="dialog-actions">
-          <button class="secondary" id="ownerCancel">取消</button>
-          <button class="primary" id="ownerSave">儲存</button>
-        </div>
-        <div id="ownerMsg" class="status"></div>
-      </div>`;
-    document.body.appendChild(div);
-    document.getElementById("ownerCancel").onclick=()=>div.remove();
-    document.getElementById("ownerSave").onclick=saveOwnerForm;
-  }
-
-  function escSafe(v){
-    return String(v||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  }
-
-  function saveOwnerForm(){
-    const o=getOwner();
-    const account=document.getElementById("ownerNewAccount").value.trim();
-    const oldp=document.getElementById("ownerOldPassword").value;
-    const newp=document.getElementById("ownerNewPassword").value;
-    const newp2=document.getElementById("ownerNewPassword2").value;
-    const msg=document.getElementById("ownerMsg");
-    if(oldp!==o.password){msg.textContent="目前密碼不正確。";return}
-    if(!account){msg.textContent="請輸入新帳號。";return}
-    if(newp.length<6){msg.textContent="新密碼至少需要 6 碼。";return}
-    if(newp!==newp2){msg.textContent="兩次新密碼不一致。";return}
-    saveOwner({account,password:newp});
-    const dataKey="ruixian_funeral_data_v2";
-    try{
-      const data=JSON.parse(localStorage.getItem(dataKey)||"null");
-      if(data && Array.isArray(data.staff)){
-        const owner=data.staff.find(x=>x.id==="owner");
-        if(owner){owner.account=account;owner.password=newp;localStorage.setItem(dataKey,JSON.stringify(data));}
-      }
-    }catch(e){}
-    document.getElementById("ownerModal").remove();
-    alert("負責人帳號與密碼已修改完成。下次登入請使用新帳號與新密碼。");
-  }
-
-  // 讓既有登入頁使用自訂負責人帳密；以捕獲階段攔截，避免舊版事件先判斷失敗。
-  const btn=document.getElementById("loginBtn");
-  if(btn){
-    btn.addEventListener("click",function(e){
-      const o=getOwner();
-      const a=document.getElementById("loginAccount")?.value.trim();
-      const p=document.getElementById("loginPassword")?.value;
-      if(a===o.account && p===o.password){
-        const main=document.getElementById("mainView");
-        const login=document.getElementById("loginView");
-        if(main&&login){
-          e.stopImmediatePropagation();
-          login.hidden=true;main.hidden=false;
-          const info=document.getElementById("staffInfo");
-          if(info)info.textContent="瑞賢禮儀社負責人｜負責人";
-          try{localStorage.setItem("ruixian_funeral_session_v2","owner")}catch(x){}
-          if(typeof renderAll==="function")renderAll();
-        }
-      }
-    },true);
-  }
-
-  const staffTab=document.querySelector('[data-tab="staff"]');
-  if(staffTab)staffTab.addEventListener("click",()=>setTimeout(addButton,0));
-  setTimeout(addButton,300);
-})();
+function login(){let a=document.getElementById("account").value.trim(),p=document.getElementById("password").value,o=owner(),s=data.staff.find(x=>x.active!==false&&x.account===a&&x.password===p);if(a===o.account&&p===o.password||s){localStorage.setItem(SESSION,"1");show()}else alert("帳號或密碼錯誤")}
+function show(){document.getElementById("login").classList.add("hide");document.getElementById("app").classList.remove("hide");render()}
+function logout(){localStorage.removeItem(SESSION);document.getElementById("app").classList.add("hide");document.getElementById("login").classList.remove("hide")}
+function tab(x){["home","cases","customers","staff","backup"].forEach(y=>document.getElementById(y).classList.toggle("hide",y!==x));render()}
+function openM(t,h){document.getElementById("mt").textContent=t;document.getElementById("mf").innerHTML=h;document.getElementById("modal").classList.remove("hide")}
+function closeM(){document.getElementById("modal").classList.add("hide")}
+function newCase(customerId="",caseId=""){
+ let c=caseId?data.cases.find(x=>x.id===caseId):null,u=c?data.customers.find(x=>x.id===c.customerId):data.customers.find(x=>x.id===customerId);
+ openM(c?"編輯案件":"新增案件",`<div class="hint">由新增案件直接建立完整客戶資料。<br>不包含身分證字號欄位。</div>
+ <label>既有客戶（可不選）</label><select id="u">${`<option value="">＋建立新客戶</option>`+data.customers.map(x=>`<option value="${x.id}" ${u?.id===x.id?"selected":""}>${esc(x.name)}｜${esc(x.phone)}</option>`).join("")}</select>
+ <div class="grid"><div><label>案件編號</label><input id="no" value="${esc(c?.caseNo||"")}"></div><div><label>案件日期</label><input id="dt" type="date" value="${esc(c?.date||date())}"></div>
+ <div><label>客戶姓名</label><input id="name" value="${esc(u?.name||c?.name||"")}"></div><div><label>聯絡電話</label><input id="phone" value="${esc(u?.phone||"")}"></div>
+ <div class="full"><label>客戶地址</label><input id="addr" value="${esc(u?.address||"")}"></div><div><label>家屬／關係人</label><input id="family" value="${esc(c?.family||"")}"></div>
+ <div><label>案件狀態</label><select id="status">${["洽談中","服務中","已完成","已取消"].map(x=>`<option ${c?.status===x?"selected":""}>${x}</option>`).join("")}</select></div>
+ <div class="full"><label>客戶備註</label><textarea id="cn">${esc(u?.note||"")}</textarea></div><div class="full"><label>案件備註</label><textarea id="note">${esc(c?.note||"")}</textarea></div></div>
+ <button onclick="closeM()">取消</button><button class="mainbtn" onclick="saveCase('${caseId}')">儲存案件</button>`);
+ document.getElementById("u").onchange=()=>{let x=data.customers.find(z=>z.id===document.getElementById("u").value);if(x){name.value=x.name;phone.value=x.phone;addr.value=x.address;cn.value=x.note}}
+}
+function saveCase(caseId){
+ let name=document.getElementById("name").value.trim();if(!name)return alert("請輸入客戶姓名");
+ let cid=document.getElementById("u").value,u=data.customers.find(x=>x.id===cid);
+ if(!u){u={id:id(),name,phone:phone.value.trim(),address:addr.value.trim(),note:cn.value.trim()};data.customers.push(u)}
+ else{u.name=name;u.phone=phone.value.trim();u.address=addr.value.trim();u.note=cn.value.trim()}
+ let x={id:caseId||id(),customerId:u.id,caseNo:no.value.trim()||"案件-"+Date.now(),name:u.name,family:family.value.trim(),date:dt.value,status:status.value,note:note.value.trim()};
+ let i=data.cases.findIndex(z=>z.id===caseId);if(i>=0)data.cases[i]=x;else data.cases.unshift(x);save();closeM();tab("cases")
+}
+function render(){
+ stats.innerHTML=`<div class="stat">案件總數<b>${data.cases.length}</b></div><div class="stat">客戶總數<b>${data.customers.length}</b></div><div class="stat">服務中<b>${data.cases.filter(x=>x.status==="服務中").length}</b></div>`;
+ let q=(caseQ?.value||"").toLowerCase();caseRows.innerHTML=data.cases.filter(x=>{let u=data.customers.find(z=>z.id===x.customerId)||{};return (x.caseNo+" "+u.name+" "+u.phone+" "+u.address).toLowerCase().includes(q)}).map(x=>{let u=data.customers.find(z=>z.id===x.customerId)||{};return `<tr><td>${esc(x.caseNo)}</td><td>${esc(u.name||x.name)}</td><td>${esc(u.phone)}</td><td>${esc(u.address)}</td><td>${esc(x.date)}</td><td>${esc(x.status)}</td><td><button onclick="newCase('','${x.id}')">編輯</button><button onclick="delCase('${x.id}')">刪除</button></td></tr>`}).join("")||"<tr><td colspan=7>目前沒有案件</td></tr>";
+ let cq=(custQ?.value||"").toLowerCase();custRows.innerHTML=data.customers.filter(x=>(x.name+" "+x.phone+" "+x.address).toLowerCase().includes(cq)).map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td>${esc(x.address)}</td><td>${esc(x.note)}</td><td>${data.cases.filter(c=>c.customerId===x.id).length}</td><td><button onclick="newCase('${x.id}')">新增案件</button></td></tr>`).join("")||"<tr><td colspan=6>目前沒有客戶</td></tr>";
+ staffRows.innerHTML=data.staff.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.account)}</td><td>${esc(x.role)}</td></tr>`).join("");
+}
+function delCase(x){if(confirm("確定刪除案件？")){data.cases=data.cases.filter(c=>c.id!==x);save()}}
+function exportCSV(){
+ let r=[["客戶姓名","聯絡電話","地址","客戶備註","案件編號","案件日期","家屬／關係人","案件狀態","案件備註"]];
+ data.customers.forEach(u=>{let cs=data.cases.filter(c=>c.customerId===u.id);if(!cs.length)r.push([u.name,u.phone,u.address,u.note,"","","","",""]);else cs.forEach(c=>r.push([u.name,u.phone,u.address,u.note,c.caseNo,c.date,c.family,c.status,c.note]))});
+ let csv="\uFEFF"+r.map(a=>a.map(x=>`"${String(x??"").replace(/"/g,'""')}"`).join(",")).join("\r\n"),a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download="瑞賢禮儀社_全部客戶資料.csv";a.click()
+}
+function changeOwner(){
+ let o=owner();openM("修改負責人帳號／密碼",`<label>新帳號</label><input id="oa" value="${esc(o.account)}"><label>目前密碼</label><input id="oc" type="password"><label>新密碼</label><input id="on" type="password"><label>確認新密碼</label><input id="on2" type="password"><button onclick="closeM()">取消</button><button class="mainbtn" onclick="saveOwner()">儲存</button>`)
+}
+function saveOwner(){let o=owner(),a=oa.value.trim(),c=oc.value,n=on.value;if(c!==o.password||!a||n.length<6||n!==on2.value)return alert("請確認目前密碼、帳號及新密碼（至少6碼）");localStorage.setItem(OWNER,JSON.stringify({account:a,password:n}));let s=data.staff.find(x=>x.id==="owner");if(s){s.account=a;s.password=n}save();closeM();alert("負責人帳號與密碼已更新")}
+function newStaff(){openM("新增員工",`<label>姓名</label><input id="sn"><label>帳號</label><input id="sa"><label>密碼</label><input id="sp" type="password"><label>角色</label><select id="sr"><option>員工</option><option>主管</option></select><button onclick="closeM()">取消</button><button class="mainbtn" onclick="saveStaff()">儲存</button>`)}
+function saveStaff(){if(!sn.value||!sa.value||!sp.value)return alert("請完整填寫");data.staff.push({id:id(),name:sn.value,account:sa.value,password:sp.value,role:sr.value,active:true});save();closeM()}
+function backup(){let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="瑞賢禮儀社_完整備份.json";a.click()}
+function restore(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.customers||!x.cases)throw 0;data={...DEF,...x};save();alert("匯入完成")}catch(e){alert("備份格式錯誤")}};r.readAsText(f)}
+if(localStorage.getItem(SESSION))show();else document.getElementById("account").focus();
+document.getElementById("password").onkeydown=e=>{if(e.key==="Enter")login()};
