@@ -1,9 +1,398 @@
-<!doctype html><html lang="zh-Hant-TW"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#765238"><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="styles.css"><title>瑞賢禮儀社</title></head><body>
-<div id="login" class="login"><div class="box"><h1>瑞賢禮儀社</h1><p>殯葬案件管理系統</p><input id="account" placeholder="帳號"><input id="password" type="password" placeholder="密碼"><button onclick="login()">登入</button></div></div>
-<div id="app" class="hide"><header><b>瑞賢禮儀社</b><button onclick="logout()">登出</button></header><nav><button onclick="tab('home')">總覽</button><button onclick="tab('cases')">案件</button><button onclick="tab('customers')">客戶</button><button onclick="tab('staff')">員工</button><button onclick="tab('backup')">備份</button></nav>
-<main><section id="home"><div class="hero"><div><h2>案件管理</h2><p>以「新增案件」建立完整客戶資料。</p></div><button onclick="newCase()" class="mainbtn">＋ 新增案件</button></div><div id="stats"></div></section>
-<section id="cases" class="hide"><div class="head"><h2>案件</h2><div><button onclick="newCase()" class="mainbtn">＋ 新增案件</button><button onclick="exportCSV()">匯出全部客戶資料</button></div></div><input id="caseQ" oninput="render()" placeholder="搜尋案件／姓名／電話／地址"><div class="table"><table><thead><tr><th>案件編號</th><th>客戶</th><th>電話</th><th>地址</th><th>日期</th><th>狀態</th><th></th></tr></thead><tbody id="caseRows"></tbody></table></div></section>
-<section id="customers" class="hide"><div class="head"><h2>所有客戶資料</h2><button onclick="exportCSV()">匯出全部客戶資料</button></div><input id="custQ" oninput="render()" placeholder="搜尋客戶"><div class="table"><table><thead><tr><th>姓名</th><th>電話</th><th>地址</th><th>備註</th><th>案件數</th><th></th></tr></thead><tbody id="custRows"></tbody></table></div></section>
-<section id="staff" class="hide"><h2>員工／帳號</h2><button onclick="changeOwner()">修改負責人帳號／密碼</button><button onclick="newStaff()">＋ 新增員工</button><div class="table"><table><thead><tr><th>姓名</th><th>帳號</th><th>角色</th></tr></thead><tbody id="staffRows"></tbody></table></div></section>
-<section id="backup" class="hide"><h2>備份</h2><button onclick="backup()">下載完整備份</button><label class="upload">匯入備份<input type="file" accept=".json" onchange="restore(event)"></label><p>客戶資料也可直接從「案件」或「客戶」頁匯出 CSV。</p></section></main></div>
-<div id="modal" class="modal hide"><div class="modalbox"><button class="x" onclick="closeM()">×</button><h2 id="mt"></h2><div id="mf"></div></div></div><script src="app.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#765238">
+<title>瑞賢禮儀社</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#f5f2ee;color:#302a26;font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Noto Sans",sans-serif;font-size:16px}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:10px;padding:10px 15px;background:#eee5dc;color:#513a2a;cursor:pointer}
+button.primary{background:#765238;color:#fff}
+button.danger{background:#f3d5d5;color:#8b2222}
+.hidden{display:none!important}
+
+#loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#eee2d6,#faf8f5)}
+.login-card{width:min(430px,100%);background:#fff;border-radius:20px;padding:30px;box-shadow:0 8px 30px #0002}
+.login-card h1{margin:0;text-align:center;font-size:30px}
+.login-card p{text-align:center;color:#777;margin:8px 0 24px}
+.login-card input{display:block;width:100%;padding:13px;margin:10px 0;border:1px solid #ddd;border-radius:10px;background:#fff}
+.login-card button{width:100%;margin-top:8px}
+
+#appView{min-height:100vh}
+.topbar{height:60px;background:#765238;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px}
+.topbar .brand{font-size:19px;font-weight:700}
+.topbar .logout{background:#fff;color:#765238;padding:8px 12px}
+.tabs{background:#fff;border-bottom:1px solid #ddd;display:flex;gap:5px;overflow-x:auto;padding:7px}
+.tabs button{white-space:nowrap;background:#fff}
+.tabs button.active{background:#eadfd4;color:#765238;font-weight:700}
+
+.container{max-width:1200px;margin:0 auto;padding:15px}
+.page-header,.hero{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.hero{background:#fff;border-radius:16px;padding:20px}
+.hero h2,.page-header h2{margin:0 0 5px}
+.hero p,.page-header p{margin:0;color:#777}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.stat{background:#fff;border-radius:15px;padding:18px}
+.stat .label{color:#777}
+.stat b{display:block;font-size:28px;margin-top:5px}
+
+.card{background:#fff;border-radius:15px;padding:18px;margin-bottom:15px}
+.search{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px;background:#fff}
+.table-wrap{background:#fff;border-radius:15px;overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:760px}
+th,td{padding:11px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+th{background:#faf7f3;white-space:nowrap}
+
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px}
+.field{margin:6px 0}
+.field.full{grid-column:1/-1}
+.field label{display:block;font-weight:700;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;padding:11px;border:1px solid #ddd;border-radius:9px;background:#fff}
+.field textarea{min-height:85px;resize:vertical}
+.hint{background:#f8f0e8;color:#684b35;padding:11px;border-radius:10px;margin-bottom:10px;line-height:1.5}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+
+.modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.58);display:flex;align-items:center;justify-content:center;padding:15px}
+.modal-card{position:relative;background:#fff;width:min(700px,100%);max-height:90vh;overflow:auto;border-radius:18px;padding:22px}
+.modal-card h2{margin:0 42px 14px 0}
+.close{position:absolute;right:10px;top:9px;width:42px;height:42px;padding:0;border-radius:10px;background:#eee;font-size:25px;line-height:42px}
+
+.file-button{display:inline-block;padding:10px 15px;border-radius:10px;background:#eee5dc;color:#513a2a;cursor:pointer;margin:3px}
+.file-button input{display:none}
+
+@media(max-width:680px){
+ .container{padding:10px}
+ .page-header,.hero{align-items:flex-start;flex-direction:column}
+ .actions{width:100%}
+ .actions button{flex:1}
+ .stats{grid-template-columns:1fr 1fr}
+ .form-grid{grid-template-columns:1fr}
+ .field.full{grid-column:auto}
+ .modal{padding:8px}
+ .modal-card{max-height:94vh;padding:17px}
+ .topbar{padding:0 10px}
+}
+</style>
+</head>
+<body>
+
+<div id="loginView">
+  <div class="login-card">
+    <h1>瑞賢禮儀社</h1>
+    <p>殯葬案件管理系統</p>
+    <input id="loginAccount" placeholder="帳號" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="密碼" autocomplete="current-password">
+    <button id="loginBtn" class="primary">登入</button>
+  </div>
+</div>
+
+<div id="appView" class="hidden">
+  <header class="topbar">
+    <div class="brand">瑞賢禮儀社</div>
+    <button class="logout" id="logoutBtn">登出</button>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="dashboard" class="active">總覽</button>
+    <button data-tab="cases">案件</button>
+    <button data-tab="customers">客戶</button>
+    <button data-tab="staff">員工</button>
+    <button data-tab="backup">備份</button>
+  </nav>
+
+  <main class="container">
+    <section id="dashboard" class="page">
+      <div class="hero">
+        <div><h2>案件管理</h2><p>以「新增案件」建立完整客戶資料。</p></div>
+        <button id="newCaseHome" class="primary">＋ 新增案件</button>
+      </div>
+      <div id="stats" class="stats"></div>
+      <div class="card"><h3>最近案件</h3><div id="recentCases"></div></div>
+    </section>
+
+    <section id="cases" class="page hidden">
+      <div class="page-header">
+        <div><h2>案件</h2><p>新增案件時可直接建立完整客戶資料。</p></div>
+        <div class="actions">
+          <button id="newCaseBtn" class="primary">＋ 新增案件</button>
+          <button id="exportCsv1">匯出全部客戶資料</button>
+        </div>
+      </div>
+      <input id="caseSearch" class="search" placeholder="搜尋案件編號、姓名、電話、地址">
+      <div class="table-wrap"><table>
+        <thead><tr><th>案件編號</th><th>客戶</th><th>電話</th><th>地址</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
+        <tbody id="caseRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="customers" class="page hidden">
+      <div class="page-header">
+        <div><h2>所有客戶資料</h2><p>客戶資料由案件建立與更新。</p></div>
+        <button id="exportCsv2">匯出全部客戶資料</button>
+      </div>
+      <input id="customerSearch" class="search" placeholder="搜尋姓名、電話、地址">
+      <div class="table-wrap"><table>
+        <thead><tr><th>姓名</th><th>電話</th><th>地址</th><th>備註</th><th>案件數</th><th>操作</th></tr></thead>
+        <tbody id="customerRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="staff" class="page hidden">
+      <div class="page-header">
+        <h2>員工／帳號</h2>
+        <div><button id="changeOwnerBtn">修改負責人帳號／密碼</button><button id="newStaffBtn" class="primary">＋ 新增員工</button></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>姓名</th><th>帳號</th><th>角色</th><th>狀態</th></tr></thead>
+        <tbody id="staffRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="backup" class="page hidden">
+      <div class="page-header"><h2>備份與匯出</h2></div>
+      <div class="card">
+        <button id="backupBtn" class="primary">下載完整備份</button>
+        <label class="file-button">匯入完整備份<input id="restoreFile" type="file" accept=".json"></label>
+      </div>
+      <div class="card">
+        <h3>全部客戶資料</h3>
+        <p>會把目前所有客戶及其案件資料整理成 CSV。</p>
+        <button id="exportCsv3">下載全部客戶資料 CSV</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <button class="close" id="modalClose">×</button>
+    <h2 id="modalTitle"></h2>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const DATA_KEY="ruixian_funeral_data_v2";
+const SESSION_KEY="ruixian_funeral_session_v2";
+const OWNER_KEY="ruixian_owner_account_v1";
+const DEFAULT={
+ customers:[],cases:[],payments:[],expenses:[],schedules:[],
+ staff:[{id:"owner",name:"瑞賢禮儀社負責人",account:"owner",password:"123456",role:"負責人",active:true}]
+};
+let data=loadData();
+
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function loadData(){
+ try{
+  const x=JSON.parse(localStorage.getItem(DATA_KEY)||"null");
+  if(!x)return clone(DEFAULT);
+  return {
+   customers:Array.isArray(x.customers)?x.customers:[],
+   cases:Array.isArray(x.cases)?x.cases:[],
+   payments:Array.isArray(x.payments)?x.payments:[],
+   expenses:Array.isArray(x.expenses)?x.expenses:[],
+   schedules:Array.isArray(x.schedules)?x.schedules:[],
+   staff:Array.isArray(x.staff)&&x.staff.length?x.staff:clone(DEFAULT.staff)
+  };
+ }catch(e){return clone(DEFAULT)}
+}
+function saveData(){localStorage.setItem(DATA_KEY,JSON.stringify(data));renderAll()}
+function owner(){
+ try{
+  const x=JSON.parse(localStorage.getItem(OWNER_KEY)||"null");
+  if(x&&x.account&&x.password)return x;
+ }catch(e){}
+ return {account:"owner",password:"123456"};
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function today(){return new Date().toISOString().slice(0,10)}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function download(name,text,type){
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([text],{type:type||"text/plain;charset=utf-8"}));
+ a.download=name;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function showApp(){document.getElementById("loginView").classList.add("hidden");document.getElementById("appView").classList.remove("hidden");renderAll()}
+function showLogin(){document.getElementById("appView").classList.add("hidden");document.getElementById("loginView").classList.remove("hidden")}
+function switchTab(t){
+ document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
+ document.querySelectorAll(".page").forEach(p=>p.classList.toggle("hidden",p.id!==t));
+ renderAll();
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+document.getElementById("logoutBtn").onclick=()=>{localStorage.removeItem(SESSION_KEY);showLogin()};
+document.getElementById("loginBtn").onclick=login;
+document.getElementById("loginPassword").onkeydown=e=>{if(e.key==="Enter")login()};
+function login(){
+ const a=document.getElementById("loginAccount").value.trim();
+ const p=document.getElementById("loginPassword").value;
+ const o=owner();
+ const s=data.staff.find(x=>x.active!==false&&x.account===a&&x.password===p);
+ if((a===o.account&&p===o.password)||s){localStorage.setItem(SESSION_KEY,"1");showApp()}
+ else alert("帳號或密碼錯誤");
+}
+
+document.getElementById("newCaseHome").onclick=()=>openCase();
+document.getElementById("newCaseBtn").onclick=()=>openCase();
+document.getElementById("caseSearch").oninput=renderCases;
+document.getElementById("customerSearch").oninput=renderCustomers;
+document.getElementById("exportCsv1").onclick=exportCSV;
+document.getElementById("exportCsv2").onclick=exportCSV;
+document.getElementById("exportCsv3").onclick=exportCSV;
+document.getElementById("backupBtn").onclick=()=>download("瑞賢禮儀社_完整備份.json",JSON.stringify(data,null,2),"application/json;charset=utf-8");
+
+function openCase(caseId="",customerId=""){
+ const c=caseId?data.cases.find(x=>x.id===caseId):null;
+ const cu=c?data.customers.find(x=>x.id===c.customerId):data.customers.find(x=>x.id===customerId);
+ const options=data.customers.map(x=>`<option value="${esc(x.id)}" ${cu&&cu.id===x.id?"selected":""}>${esc(x.name)}｜${esc(x.phone)}</option>`).join("");
+ openModal(c?"編輯案件":"新增案件",`
+  <div class="hint">從「新增案件」即可建立完整客戶資料。<br>本系統不設置「身分證字號」欄位。</div>
+  <div class="field"><label>既有客戶（可不選）</label><select id="caseCustomer"><option value="">＋ 建立新客戶</option>${options}</select></div>
+  <div class="form-grid">
+   <div class="field"><label>案件編號</label><input id="caseNo" value="${esc(c?.caseNo||"")}"></div>
+   <div class="field"><label>案件日期</label><input id="caseDate" type="date" value="${esc(c?.date||today())}"></div>
+   <div class="field"><label>客戶姓名</label><input id="custName" value="${esc(cu?.name||c?.name||"")}"></div>
+   <div class="field"><label>聯絡電話</label><input id="custPhone" value="${esc(cu?.phone||"")}"></div>
+   <div class="field full"><label>客戶地址</label><input id="custAddress" value="${esc(cu?.address||"")}"></div>
+   <div class="field"><label>家屬／關係人</label><input id="family" value="${esc(c?.family||"")}"></div>
+   <div class="field"><label>案件狀態</label><select id="caseStatus">${["洽談中","服務中","已完成","已取消"].map(s=>`<option ${c?.status===s?"selected":""}>${s}</option>`).join("")}</select></div>
+   <div class="field full"><label>客戶備註</label><textarea id="custNote">${esc(cu?.note||"")}</textarea></div>
+   <div class="field full"><label>案件備註</label><textarea id="caseNote">${esc(c?.note||"")}</textarea></div>
+  </div>
+  <div class="form-actions"><button id="cancelCase">取消</button><button id="saveCase" class="primary">儲存案件</button></div>
+ `);
+ document.getElementById("caseCustomer").onchange=function(){
+  const x=data.customers.find(z=>z.id===this.value);
+  if(x){
+   document.getElementById("custName").value=x.name||"";
+   document.getElementById("custPhone").value=x.phone||"";
+   document.getElementById("custAddress").value=x.address||"";
+   document.getElementById("custNote").value=x.note||"";
+  }
+ };
+ document.getElementById("cancelCase").onclick=closeModal;
+ document.getElementById("saveCase").onclick=()=>saveCase(caseId);
+}
+function saveCase(caseId){
+ const name=document.getElementById("custName").value.trim();
+ if(!name){alert("請輸入客戶姓名");return}
+ const select=document.getElementById("caseCustomer").value;
+ let cu=data.customers.find(x=>x.id===select);
+ if(!cu){
+  cu={id:uid(),name,phone:document.getElementById("custPhone").value.trim(),address:document.getElementById("custAddress").value.trim(),note:document.getElementById("custNote").value.trim(),createdAt:new Date().toISOString()};
+  data.customers.push(cu);
+ }else{
+  cu.name=name;cu.phone=document.getElementById("custPhone").value.trim();cu.address=document.getElementById("custAddress").value.trim();cu.note=document.getElementById("custNote").value.trim();
+ }
+ const obj={id:caseId||uid(),customerId:cu.id,caseNo:document.getElementById("caseNo").value.trim()||("案件-"+Date.now()),name:cu.name,family:document.getElementById("family").value.trim(),date:document.getElementById("caseDate").value,status:document.getElementById("caseStatus").value,note:document.getElementById("caseNote").value.trim(),updatedAt:new Date().toISOString()};
+ const i=data.cases.findIndex(x=>x.id===caseId);
+ if(i>=0)data.cases[i]=obj;else data.cases.unshift(obj);
+ saveData();closeModal();switchTab("cases");
+}
+
+function renderAll(){renderDashboard();renderCases();renderCustomers();renderStaff()}
+function renderDashboard(){
+ document.getElementById("stats").innerHTML=
+ `<div class="stat"><span class="label">案件總數</span><b>${data.cases.length}</b></div>
+  <div class="stat"><span class="label">客戶總數</span><b>${data.customers.length}</b></div>
+  <div class="stat"><span class="label">服務中案件</span><b>${data.cases.filter(x=>x.status==="服務中").length}</b></div>`;
+ document.getElementById("recentCases").innerHTML=data.cases.slice(0,8).map(x=>`<div class="card" style="margin-bottom:8px"><b>${esc(x.caseNo)}</b>　${esc(x.name)}　${esc(x.date)}　${esc(x.status)}</div>`).join("")||"<p>目前尚無案件。</p>";
+}
+function renderCases(){
+ const q=document.getElementById("caseSearch").value.toLowerCase();
+ const arr=data.cases.filter(x=>{const u=data.customers.find(c=>c.id===x.customerId)||{};return (x.caseNo+" "+u.name+" "+u.phone+" "+u.address).toLowerCase().includes(q)});
+ document.getElementById("caseRows").innerHTML=arr.map(x=>{
+  const u=data.customers.find(c=>c.id===x.customerId)||{};
+  return `<tr><td>${esc(x.caseNo)}</td><td>${esc(u.name||x.name)}</td><td>${esc(u.phone)}</td><td>${esc(u.address)}</td><td>${esc(x.date)}</td><td>${esc(x.status)}</td><td><button onclick="window.__editCase('${x.id}')">編輯</button><button class="danger" onclick="window.__deleteCase('${x.id}')">刪除</button></td></tr>`;
+ }).join("")||"<tr><td colspan='7'>目前沒有案件。</td></tr>";
+}
+function renderCustomers(){
+ const q=document.getElementById("customerSearch").value.toLowerCase();
+ const arr=data.customers.filter(x=>(x.name+" "+x.phone+" "+x.address).toLowerCase().includes(q));
+ document.getElementById("customerRows").innerHTML=arr.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td>${esc(x.address)}</td><td>${esc(x.note)}</td><td>${data.cases.filter(c=>c.customerId===x.id).length}</td><td><button onclick="window.__newCaseForCustomer('${x.id}')">新增案件</button></td></tr>`).join("")||"<tr><td colspan='6'>目前沒有客戶。</td></tr>";
+}
+function renderStaff(){
+ document.getElementById("staffRows").innerHTML=data.staff.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.account)}</td><td>${esc(x.role)}</td><td>${x.active===false?"停用":"啟用"}</td></tr>`).join("");
+}
+window.__editCase=id=>openCase(id);
+window.__newCaseForCustomer=id=>openCase("",id);
+window.__deleteCase=id=>{if(confirm("確定刪除這筆案件嗎？")){data.cases=data.cases.filter(x=>x.id!==id);saveData()}};
+
+function exportCSV(){
+ const rows=[["客戶姓名","聯絡電話","地址","客戶備註","案件編號","案件日期","家屬／關係人","案件狀態","案件備註"]];
+ data.customers.forEach(c=>{
+  const cases=data.cases.filter(x=>x.customerId===c.id);
+  if(!cases.length)rows.push([c.name,c.phone,c.address,c.note,"","","","",""]);
+  else cases.forEach(x=>rows.push([c.name,c.phone,c.address,c.note,x.caseNo,x.date,x.family,x.status,x.note]));
+ });
+ const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+ download("瑞賢禮儀社_全部客戶資料.csv",csv,"text/csv;charset=utf-8");
+}
+
+function openModal(title,body){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body;document.getElementById("modal").classList.remove("hidden")}
+function closeModal(){document.getElementById("modal").classList.add("hidden")}
+document.getElementById("modalClose").onclick=closeModal;
+
+document.getElementById("changeOwnerBtn").onclick=()=>{
+ const o=owner();
+ openModal("修改負責人帳號／密碼",`
+  <div class="field"><label>新帳號</label><input id="newOwnerAccount" value="${esc(o.account)}"></div>
+  <div class="field"><label>目前密碼</label><input id="currentOwnerPassword" type="password"></div>
+  <div class="field"><label>新密碼</label><input id="newOwnerPassword" type="password"></div>
+  <div class="field"><label>確認新密碼</label><input id="newOwnerPassword2" type="password"></div>
+  <div class="form-actions"><button id="cancelOwner">取消</button><button id="saveOwner" class="primary">儲存</button></div>`);
+ document.getElementById("cancelOwner").onclick=closeModal;
+ document.getElementById("saveOwner").onclick=()=>{
+  const a=document.getElementById("newOwnerAccount").value.trim(),cur=document.getElementById("currentOwnerPassword").value,n=document.getElementById("newOwnerPassword").value,n2=document.getElementById("newOwnerPassword2").value;
+  if(cur!==o.password){alert("目前密碼錯誤");return}
+  if(!a||n.length<6||n!==n2){alert("請確認帳號及新密碼（至少6碼且兩次一致）");return}
+  localStorage.setItem(OWNER_KEY,JSON.stringify({account:a,password:n}));
+  const s=data.staff.find(x=>x.id==="owner");if(s){s.account=a;s.password=n}
+  saveData();closeModal();alert("負責人帳號與密碼已更新");
+ };
+};
+
+document.getElementById("newStaffBtn").onclick=()=>{
+ openModal("新增員工",`
+  <div class="form-grid">
+   <div class="field"><label>姓名</label><input id="staffName"></div>
+   <div class="field"><label>帳號</label><input id="staffAccount"></div>
+   <div class="field"><label>密碼</label><input id="staffPassword" type="password"></div>
+   <div class="field"><label>角色</label><select id="staffRole"><option>員工</option><option>主管</option></select></div>
+  </div>
+  <div class="form-actions"><button id="cancelStaff">取消</button><button id="saveStaff" class="primary">儲存</button></div>`);
+ document.getElementById("cancelStaff").onclick=closeModal;
+ document.getElementById("saveStaff").onclick=()=>{
+  const n=document.getElementById("staffName").value.trim(),a=document.getElementById("staffAccount").value.trim(),p=document.getElementById("staffPassword").value;
+  if(!n||!a||!p){alert("請完整填寫");return}
+  data.staff.push({id:uid(),name:n,account:a,password:p,role:document.getElementById("staffRole").value,active:true});
+  saveData();closeModal();
+ };
+};
+
+document.getElementById("restoreFile").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{
+  try{
+   const x=JSON.parse(r.result);
+   if(!Array.isArray(x.customers)||!Array.isArray(x.cases))throw new Error();
+   data={...clone(DEFAULT),...x};saveData();alert("完整備份已匯入");
+  }catch(err){alert("備份檔案格式不正確")}
+ };
+ r.readAsText(f);
+};
+
+if(localStorage.getItem(SESSION_KEY))showApp();
+})();
+</script>
+</body>
+</html>
