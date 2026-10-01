@@ -20,3 +20,121 @@ function editItem(t,id){const o=data[key[t]].find(x=>x.id===id);if(o)form(t,o)}f
 $("backupBtn").onclick=()=>{const u=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));const a=document.createElement("a");a.href=u;a.download=`瑞賢禮儀社備份_${today()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)};
 $("restoreBtn").onclick=()=>$("restoreFile").click();$("restoreFile").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);data={customers:x.customers||[],cases:x.cases||[],payments:x.payments||[],expenses:x.expenses||[],schedules:x.schedules||[],staff:x.staff?.length?x.staff:defaults.staff};save();alert("資料匯入完成")}catch(_){alert("備份檔格式不正確")}};r.readAsText(f)};
 window.editItem=editItem;window.deleteItem=deleteItem;window.saveForm=saveForm;window.closeModal=closeModal;if(session&&data.staff.some(x=>x.id===session&&x.active!==false))enter();
+
+/* 瑞賢禮儀社：負責人帳號／密碼管理 */
+(function(){
+  function ownerKey(){return "ruixian_owner_account_v1";}
+  function getOwner(){
+    try{
+      const x=JSON.parse(localStorage.getItem(ownerKey())||"null");
+      if(x && x.account && x.password) return x;
+    }catch(e){}
+    return {account:"owner",password:"123456"};
+  }
+  function saveOwner(x){localStorage.setItem(ownerKey(),JSON.stringify(x));}
+
+  // 若原系統的登入事件已存在，這裡只在使用預設帳號時提供相容處理。
+  const originalLogin=document.getElementById("loginBtn");
+  if(originalLogin){
+    originalLogin.addEventListener("click",function(){
+      const o=getOwner();
+      const a=document.getElementById("loginAccount")?.value.trim();
+      const p=document.getElementById("loginPassword")?.value;
+      if(a===o.account && p===o.password){
+        try{
+          localStorage.setItem("ruixian_owner_login","1");
+        }catch(e){}
+      }
+    },true);
+  }
+
+  function addButton(){
+    const staff=document.getElementById("staff");
+    if(!staff || document.getElementById("ownerAccountBtn")) return;
+    const box=document.createElement("div");
+    box.className="item";
+    box.innerHTML='<div class="item-title">負責人登入帳號</div><div class="item-meta">可修改負責人的登入帳號與密碼。</div><div class="item-actions"><button id="ownerAccountBtn" class="primary">修改帳號／密碼</button></div>';
+    const list=staff.querySelector(".list");
+    if(list) list.insertBefore(box,list.firstChild);
+    document.getElementById("ownerAccountBtn").onclick=openOwnerForm;
+  }
+
+  function openOwnerForm(){
+    const o=getOwner();
+    const old=document.getElementById("ownerModal");
+    if(old)old.remove();
+    const div=document.createElement("div");
+    div.id="ownerModal";
+    div.className="modal";
+    div.innerHTML=`
+      <div class="dialog">
+        <h2>修改負責人帳號／密碼</h2>
+        <label>新帳號<input id="ownerNewAccount" value="${escSafe(o.account)}" autocomplete="username"></label>
+        <label>目前密碼<input id="ownerOldPassword" type="password" autocomplete="current-password" placeholder="請輸入目前密碼"></label>
+        <label>新密碼<input id="ownerNewPassword" type="password" autocomplete="new-password" placeholder="至少 6 碼"></label>
+        <label>再次輸入新密碼<input id="ownerNewPassword2" type="password" autocomplete="new-password"></label>
+        <div class="dialog-actions">
+          <button class="secondary" id="ownerCancel">取消</button>
+          <button class="primary" id="ownerSave">儲存</button>
+        </div>
+        <div id="ownerMsg" class="status"></div>
+      </div>`;
+    document.body.appendChild(div);
+    document.getElementById("ownerCancel").onclick=()=>div.remove();
+    document.getElementById("ownerSave").onclick=saveOwnerForm;
+  }
+
+  function escSafe(v){
+    return String(v||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+
+  function saveOwnerForm(){
+    const o=getOwner();
+    const account=document.getElementById("ownerNewAccount").value.trim();
+    const oldp=document.getElementById("ownerOldPassword").value;
+    const newp=document.getElementById("ownerNewPassword").value;
+    const newp2=document.getElementById("ownerNewPassword2").value;
+    const msg=document.getElementById("ownerMsg");
+    if(oldp!==o.password){msg.textContent="目前密碼不正確。";return}
+    if(!account){msg.textContent="請輸入新帳號。";return}
+    if(newp.length<6){msg.textContent="新密碼至少需要 6 碼。";return}
+    if(newp!==newp2){msg.textContent="兩次新密碼不一致。";return}
+    saveOwner({account,password:newp});
+    const dataKey="ruixian_funeral_data_v2";
+    try{
+      const data=JSON.parse(localStorage.getItem(dataKey)||"null");
+      if(data && Array.isArray(data.staff)){
+        const owner=data.staff.find(x=>x.id==="owner");
+        if(owner){owner.account=account;owner.password=newp;localStorage.setItem(dataKey,JSON.stringify(data));}
+      }
+    }catch(e){}
+    document.getElementById("ownerModal").remove();
+    alert("負責人帳號與密碼已修改完成。下次登入請使用新帳號與新密碼。");
+  }
+
+  // 讓既有登入頁使用自訂負責人帳密；以捕獲階段攔截，避免舊版事件先判斷失敗。
+  const btn=document.getElementById("loginBtn");
+  if(btn){
+    btn.addEventListener("click",function(e){
+      const o=getOwner();
+      const a=document.getElementById("loginAccount")?.value.trim();
+      const p=document.getElementById("loginPassword")?.value;
+      if(a===o.account && p===o.password){
+        const main=document.getElementById("mainView");
+        const login=document.getElementById("loginView");
+        if(main&&login){
+          e.stopImmediatePropagation();
+          login.hidden=true;main.hidden=false;
+          const info=document.getElementById("staffInfo");
+          if(info)info.textContent="瑞賢禮儀社負責人｜負責人";
+          try{localStorage.setItem("ruixian_funeral_session_v2","owner")}catch(x){}
+          if(typeof renderAll==="function")renderAll();
+        }
+      }
+    },true);
+  }
+
+  const staffTab=document.querySelector('[data-tab="staff"]');
+  if(staffTab)staffTab.addEventListener("click",()=>setTimeout(addButton,0));
+  setTimeout(addButton,300);
+})();
