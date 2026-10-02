@@ -90,6 +90,44 @@ th{background:#faf7f3;white-space:nowrap}
  .modal-card{max-height:94vh;padding:17px}
  .topbar{padding:0 10px}
 }
+
+/* 瑞賢禮儀社新版底圖與介面優化 */
+body{
+  background:
+    linear-gradient(rgba(250,247,242,.88),rgba(250,247,242,.88)),
+    radial-gradient(circle at 15% 10%, rgba(151,116,74,.13), transparent 28%),
+    radial-gradient(circle at 85% 85%, rgba(110,90,65,.10), transparent 32%),
+    linear-gradient(135deg,#eee5d8 0%,#f8f4ee 48%,#e9dfd1 100%);
+  background-attachment:fixed;
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-1;
+  opacity:.18;
+  background-image:
+    linear-gradient(115deg,transparent 0 48%,rgba(110,90,65,.05) 49%,transparent 50%),
+    linear-gradient(25deg,transparent 0 48%,rgba(110,90,65,.035) 49%,transparent 50%);
+  background-size:42px 42px;
+}
+.topbar{
+  background:linear-gradient(135deg,#5b4635,#806448);
+  box-shadow:0 5px 18px rgba(62,45,31,.22);
+}
+.card,.panel,.stat,.table-wrap{
+  background:rgba(255,255,255,.91);
+  backdrop-filter:blur(8px);
+  box-shadow:0 6px 22px rgba(70,52,35,.10);
+}
+button.primary{
+  box-shadow:0 4px 10px rgba(93,68,45,.18);
+}
+.modal-card{
+  box-shadow:0 18px 55px rgba(45,32,22,.28);
+}
+
 </style>
 </head>
 <body>
@@ -323,8 +361,28 @@ function openCase(caseId="",customerId=""){
     <option value="女" ${gender==="女"?"selected":""}>女</option>
     <option value="其他" ${gender==="其他"?"selected":""}>其他</option>
    </select></div>
-   <div class="field"><label>出生年月</label><input id="birthDate" type="month" value="${esc(birthDate)}"></div>
-   <div class="field"><label>死亡日期</label><input id="deathDate" type="date" value="${esc(deathDate)}"></div>
+   <div class="field">
+    <label>出生日期類別</label>
+    <select id="birthCalendar">
+      <option value="國曆" ${((cu?.birthCalendar||c?.birthCalendar||"國曆")==="國曆")?"selected":""}>國曆</option>
+      <option value="農曆" ${((cu?.birthCalendar||c?.birthCalendar||"")==="農曆")?"selected":""}>農曆</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>出生日期（民國年）</label>
+    <input id="birthDate" value="${esc(birthDate)}" placeholder="例如：75年8月12日">
+   </div>
+   <div class="field">
+    <label>死亡日期類別</label>
+    <select id="deathCalendar">
+      <option value="國曆" ${((c?.deathCalendar||"國曆")==="國曆")?"selected":""}>國曆</option>
+      <option value="農曆" ${((c?.deathCalendar||"")==="農曆")?"selected":""}>農曆</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>死亡日期（民國年）</label>
+    <input id="deathDate" value="${esc(deathDate)}" placeholder="例如：115年10月3日"> 
+   </div>
   </div>
 
   <h3 style="margin:18px 0 8px">家屬代表人</h3>
@@ -350,6 +408,7 @@ function openCase(caseId="",customerId=""){
   if(x){
    document.getElementById("deceasedName").value=x.deceasedName||x.name||"";
    document.getElementById("gender").value=x.gender||"";
+   document.getElementById("birthCalendar").value=x.birthCalendar||"國曆";
    document.getElementById("birthDate").value=x.birthDate||"";
    document.getElementById("familyPhone").value=x.phone||"";
    document.getElementById("familyAddress").value=x.address||"";
@@ -368,8 +427,10 @@ function saveCase(caseId){
  let cu=data.customers.find(x=>x.id===select);
 
  const gender=document.getElementById("gender").value;
- const birthDate=document.getElementById("birthDate").value;
- const deathDate=document.getElementById("deathDate").value;
+ const birthCalendar=document.getElementById("birthCalendar").value;
+ const birthDate=document.getElementById("birthDate").value.trim();
+ const deathCalendar=document.getElementById("deathCalendar").value;
+ const deathDate=document.getElementById("deathDate").value.trim();
  const familyName=document.getElementById("familyName").value.trim();
  const familyRocYear=document.getElementById("familyRocYear").value.trim();
  const familyRelation=document.getElementById("familyRelation").value;
@@ -378,7 +439,7 @@ function saveCase(caseId){
  const familyNote=document.getElementById("familyNote").value.trim();
 
  const customerPayload={
-  deceasedName,name:deceasedName,gender,birthDate,
+  deceasedName,name:deceasedName,gender,birthDate,birthCalendar,
   phone:familyPhone,address:familyAddress,note:familyNote
  };
 
@@ -393,7 +454,7 @@ function saveCase(caseId){
  const obj={
   id:caseId||uid(),customerId:cu.id,
   caseNo:document.getElementById("caseNo").value.trim()||getNextCaseNo(),
-  name:deceasedName,deceasedName,gender,birthDate,deathDate,
+  name:deceasedName,deceasedName,gender,birthDate,birthCalendar,deathDate,deathCalendar,
   familyName,familyRocYear,familyRelation,familyPhone,familyAddress,familyNote,
   family:familyName,
   date:document.getElementById("caseDate").value,
@@ -454,7 +515,7 @@ window.__deleteCase=id=>{if(confirm("確定刪除這筆案件嗎？")){data.case
 
 function exportCSV(){
  const rows=[[
-  "案件編號","亡者姓名","性別","出生年月","死亡日期",
+  "案件編號","亡者姓名","性別","出生日期類別","出生日期（民國）","死亡日期類別","死亡日期（民國）",
   "家屬代表人","代表人民國年","跟亡者的關係","代表人電話","代表人住址",
   "代表人備註","案件日期","案件狀態","案件備註"
  ]];
@@ -464,7 +525,9 @@ function exportCSV(){
    x.caseNo||"",
    x.deceasedName||x.name||c.deceasedName||c.name||"",
    x.gender||c.gender||"",
+   x.birthCalendar||c.birthCalendar||"國曆",
    x.birthDate||c.birthDate||"",
+   x.deathCalendar||"國曆",
    x.deathDate||"",
    x.familyName||x.family||"",
    x.familyRocYear||"",
