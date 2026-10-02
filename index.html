@@ -188,7 +188,7 @@ button.primary{
       </div>
       <input id="customerSearch" class="search" placeholder="搜尋姓名、電話、地址">
       <div class="table-wrap"><table>
-        <thead><tr><th>亡者姓名</th><th>家屬代表人</th><th>代表人電話</th><th>代表人住址</th><th>案件數</th><th>操作</th></tr></thead>
+        <thead><tr><th>亡者姓名</th><th>家屬</th><th>代表人電話</th><th>代表人住址</th><th>案件數</th><th>操作</th></tr></thead>
         <tbody id="customerRows"></tbody>
       </table></div>
     </section>
@@ -385,20 +385,28 @@ function openCase(caseId="",customerId=""){
    </div>
   </div>
 
-  <h3 style="margin:18px 0 8px">家屬代表人</h3>
-  <div class="form-grid">
-   <div class="field"><label>代表人姓名</label><input id="familyName" value="${esc(familyName)}" placeholder="請輸入家屬代表人姓名"></div>
-   <div class="field"><label>民國年</label><input id="familyRocYear" inputmode="numeric" value="${esc(familyRocYear)}" placeholder="例如：80"></div>
-   <div class="field"><label>跟亡者的關係</label><select id="familyRelation">
-    <option value="">請選擇</option>
-    ${relations.map(s=>`<option value="${esc(s)}" ${familyRelation===s?"selected":""}>${esc(s)}</option>`).join("")}
-   </select></div>
-   <div class="field"><label>代表人電話</label><input id="familyPhone" inputmode="tel" value="${esc(familyPhone)}" placeholder="請輸入家屬電話"></div>
-   <div class="field full"><label>代表人住址</label><input id="familyAddress" value="${esc(familyAddress)}" placeholder="請輸入家屬住址"></div>
-   <div class="field full"><label>代表人備註</label><textarea id="familyNote" placeholder="家屬代表人相關備註">${esc(familyNote)}</textarea></div>
+  
+<h3 style="margin:18px 0 8px">家屬資料</h3>
+<div id="familyMembers">
+  <div class="family-member" data-family-index="0" style="border:1px solid #e5ddd2;border-radius:12px;padding:12px;margin-bottom:10px;background:rgba(250,247,242,.7)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>家屬 1</strong>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>家屬姓名</label><input class="familyName" value="${esc(familyName)}" placeholder="請輸入家屬姓名"></div>
+      <div class="field"><label>民國年</label><input class="familyRocYear" inputmode="numeric" value="${esc(familyRocYear)}" placeholder="例如：80"></div>
+      <div class="field"><label>跟亡者的關係</label><select class="familyRelation">
+        <option value="">請選擇</option>
+        ${["配偶","父親","母親","兒子","女兒","兄弟","姊妹","祖父","祖母","孫子","孫女","外孫","外孫女","其他"].map(s=>`<option value="${esc(s)}" ${familyRelation===s?"selected":""}>${esc(s)}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>電話</label><input class="familyPhone" inputmode="tel" value="${esc(familyPhone)}" placeholder="請輸入電話"></div>
+      <div class="field full"><label>住址</label><input class="familyAddress" value="${esc(familyAddress)}" placeholder="請輸入住址"></div>
+      <div class="field full"><label>備註</label><textarea class="familyNote" placeholder="家屬相關備註">${esc(familyNote)}</textarea></div>
+    </div>
   </div>
-
-  <div class="field" style="margin-top:8px"><label>案件備註</label><textarea id="caseNote" placeholder="案件處理相關備註">${esc(c?.note||"")}</textarea></div>
+</div>
+<button type="button" id="addFamilyMember" style="margin:2px 0 10px">＋ 新增家屬</button>
+<div class="field" style="margin-top:8px"><label>案件備註</label><textarea id="caseNote" placeholder="案件處理相關備註">${esc(c?.note||"")}</textarea></div>
 
   <div class="form-actions"><button id="cancelCase">取消</button><button id="saveCase" class="primary">儲存案件</button></div>
  `);
@@ -410,13 +418,61 @@ function openCase(caseId="",customerId=""){
    document.getElementById("gender").value=x.gender||"";
    document.getElementById("birthCalendar").value=x.birthCalendar||"國曆";
    document.getElementById("birthDate").value=x.birthDate||"";
-   document.getElementById("familyPhone").value=x.phone||"";
-   document.getElementById("familyAddress").value=x.address||"";
-   document.getElementById("familyNote").value=x.note||"";
+   const fm=document.querySelector(".family-member");
+   if(fm){
+    fm.querySelector(".familyPhone").value=x.phone||"";
+    fm.querySelector(".familyAddress").value=x.address||"";
+    fm.querySelector(".familyNote").value=x.note||"";
+   }
   }
  };
+ setupFamilyMembers(c?.familyMembers||((familyName||familyPhone||familyAddress||familyNote)?[{
+   name:familyName,rocYear:familyRocYear,relation:familyRelation,phone:familyPhone,address:familyAddress,note:familyNote
+  }]:[]));
  document.getElementById("cancelCase").onclick=closeModal;
  document.getElementById("saveCase").onclick=()=>saveCase(caseId);
+}
+
+function setupFamilyMembers(existingMembers){
+ const wrap=document.getElementById("familyMembers");
+ const addBtn=document.getElementById("addFamilyMember");
+ if(!wrap||!addBtn)return;
+
+ function relationsOptions(selected){
+  return ["配偶","父親","母親","兒子","女兒","兄弟","姊妹","祖父","祖母","孫子","孫女","外孫","外孫女","其他"]
+   .map(s=>`<option value="${esc(s)}" ${selected===s?"selected":""}>${esc(s)}</option>`).join("");
+ }
+ function addMember(m={}){
+  const idx=wrap.querySelectorAll(".family-member").length+1;
+  const div=document.createElement("div");
+  div.className="family-member";
+  div.style.cssText="border:1px solid #e5ddd2;border-radius:12px;padding:12px;margin-bottom:10px;background:rgba(250,247,242,.7)";
+  div.innerHTML=`
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong>家屬 ${idx}</strong>
+    <button type="button" class="removeFamily" ${idx===1?"style=\"display:none\"":""}>刪除</button>
+   </div>
+   <div class="form-grid">
+    <div class="field"><label>家屬姓名</label><input class="familyName" value="${esc(m.name||"")}" placeholder="請輸入家屬姓名"></div>
+    <div class="field"><label>民國年</label><input class="familyRocYear" inputmode="numeric" value="${esc(m.rocYear||"")}" placeholder="例如：80"></div>
+    <div class="field"><label>跟亡者的關係</label><select class="familyRelation"><option value="">請選擇</option>${relationsOptions(m.relation||"")}</select></div>
+    <div class="field"><label>電話</label><input class="familyPhone" inputmode="tel" value="${esc(m.phone||"")}" placeholder="請輸入電話"></div>
+    <div class="field full"><label>住址</label><input class="familyAddress" value="${esc(m.address||"")}" placeholder="請輸入住址"></div>
+    <div class="field full"><label>備註</label><textarea class="familyNote" placeholder="家屬相關備註">${esc(m.note||"")}</textarea></div>
+   </div>`;
+  wrap.appendChild(div);
+  div.querySelector(".removeFamily")?.addEventListener("click",()=>{div.remove();renumber();});
+ }
+ function renumber(){
+  wrap.querySelectorAll(".family-member").forEach((el,i)=>{
+   el.querySelector("strong").textContent=`家屬 ${i+1}`;
+   const btn=el.querySelector(".removeFamily");
+   if(btn)btn.style.display=i===0?"none":"";
+  });
+ }
+ wrap.innerHTML="";
+ (existingMembers&&existingMembers.length?existingMembers:[{}]).forEach(addMember);
+ addBtn.onclick=()=>addMember({});
 }
 
 function saveCase(caseId){
@@ -431,12 +487,20 @@ function saveCase(caseId){
  const birthDate=document.getElementById("birthDate").value.trim();
  const deathCalendar=document.getElementById("deathCalendar").value;
  const deathDate=document.getElementById("deathDate").value.trim();
- const familyName=document.getElementById("familyName").value.trim();
- const familyRocYear=document.getElementById("familyRocYear").value.trim();
- const familyRelation=document.getElementById("familyRelation").value;
- const familyPhone=document.getElementById("familyPhone").value.trim();
- const familyAddress=document.getElementById("familyAddress").value.trim();
- const familyNote=document.getElementById("familyNote").value.trim();
+ const familyMembers=[...document.querySelectorAll(".family-member")].map(el=>({
+  name:el.querySelector(".familyName")?.value.trim()||"",
+  rocYear:el.querySelector(".familyRocYear")?.value.trim()||"",
+  relation:el.querySelector(".familyRelation")?.value||"",
+  phone:el.querySelector(".familyPhone")?.value.trim()||"",
+  address:el.querySelector(".familyAddress")?.value.trim()||"",
+  note:el.querySelector(".familyNote")?.value.trim()||""
+ })).filter(x=>x.name||x.phone||x.address||x.note||x.relation);
+ const familyName=familyMembers[0]?.name||"";
+ const familyRocYear=familyMembers[0]?.rocYear||"";
+ const familyRelation=familyMembers[0]?.relation||"";
+ const familyPhone=familyMembers[0]?.phone||"";
+ const familyAddress=familyMembers[0]?.address||"";
+ const familyNote=familyMembers[0]?.note||"";
 
  const customerPayload={
   deceasedName,name:deceasedName,gender,birthDate,birthCalendar,
@@ -455,6 +519,7 @@ function saveCase(caseId){
   id:caseId||uid(),customerId:cu.id,
   caseNo:document.getElementById("caseNo").value.trim()||getNextCaseNo(),
   name:deceasedName,deceasedName,gender,birthDate,birthCalendar,deathDate,deathCalendar,
+  familyMembers,
   familyName,familyRocYear,familyRelation,familyPhone,familyAddress,familyNote,
   family:familyName,
   date:document.getElementById("caseDate").value,
