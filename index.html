@@ -150,7 +150,7 @@ th{background:#faf7f3;white-space:nowrap}
       </div>
       <input id="customerSearch" class="search" placeholder="搜尋姓名、電話、地址">
       <div class="table-wrap"><table>
-        <thead><tr><th>姓名</th><th>電話</th><th>地址</th><th>備註</th><th>案件數</th><th>操作</th></tr></thead>
+        <thead><tr><th>亡者姓名</th><th>家屬代表人</th><th>代表人電話</th><th>代表人住址</th><th>案件數</th><th>操作</th></tr></thead>
         <tbody id="customerRows"></tbody>
       </table></div>
     </section>
@@ -264,52 +264,148 @@ document.getElementById("exportCsv2").onclick=exportCSV;
 document.getElementById("exportCsv3").onclick=exportCSV;
 document.getElementById("backupBtn").onclick=()=>download("瑞賢禮儀社_完整備份.json",JSON.stringify(data,null,2),"application/json;charset=utf-8");
 
+function getNextCaseNo(){
+ const rocYear=new Date().getFullYear()-1911;
+ const prefix=String(rocYear);
+ let max=0;
+ data.cases.forEach(x=>{
+  const m=String(x.caseNo||"").match(new RegExp("^"+prefix+"-(\\d+)$"));
+  if(m)max=Math.max(max,parseInt(m[1],10)||0);
+ });
+ return prefix+"-"+String(max+1).padStart(3,"0");
+}
+
 function openCase(caseId="",customerId=""){
  const c=caseId?data.cases.find(x=>x.id===caseId):null;
  const cu=c?data.customers.find(x=>x.id===c.customerId):data.customers.find(x=>x.id===customerId);
- const options=data.customers.map(x=>`<option value="${esc(x.id)}" ${cu&&cu.id===x.id?"selected":""}>${esc(x.name)}｜${esc(x.phone)}</option>`).join("");
+
+ const deceasedName=cu?.deceasedName||cu?.name||c?.deceasedName||c?.name||"";
+ const gender=cu?.gender||c?.gender||"";
+ const birthDate=cu?.birthDate||c?.birthDate||"";
+ const deathDate=c?.deathDate||"";
+
+ const familyName=c?.familyName||"";
+ const familyRocYear=c?.familyRocYear||"";
+ const familyRelation=c?.familyRelation||"";
+ const familyPhone=c?.familyPhone||cu?.phone||"";
+ const familyAddress=c?.familyAddress||cu?.address||"";
+ const familyNote=c?.familyNote||cu?.note||"";
+
+ const options=data.customers.map(x=>`<option value="${esc(x.id)}" ${cu&&cu.id===x.id?"selected":""}>${esc(x.deceasedName||x.name||"")}｜${esc(x.familyName||x.phone||"")}</option>`).join("");
+ const relations=["配偶","父親","母親","兒子","女兒","兄弟","姊妹","祖父","祖母","孫子","孫女","其他"];
+
  openModal(c?"編輯案件":"新增案件",`
-  <div class="hint">從「新增案件」即可建立完整客戶資料。<br>本系統不設置「身分證字號」欄位。</div>
-  <div class="field"><label>既有客戶（可不選）</label><select id="caseCustomer"><option value="">＋ 建立新客戶</option>${options}</select></div>
-  <div class="form-grid">
-   <div class="field"><label>案件編號</label><input id="caseNo" value="${esc(c?.caseNo||"")}"></div>
-   <div class="field"><label>案件日期</label><input id="caseDate" type="date" value="${esc(c?.date||today())}"></div>
-   <div class="field"><label>客戶姓名</label><input id="custName" value="${esc(cu?.name||c?.name||"")}"></div>
-   <div class="field"><label>聯絡電話</label><input id="custPhone" value="${esc(cu?.phone||"")}"></div>
-   <div class="field full"><label>客戶地址</label><input id="custAddress" value="${esc(cu?.address||"")}"></div>
-   <div class="field"><label>家屬／關係人</label><input id="family" value="${esc(c?.family||"")}"></div>
-   <div class="field"><label>案件狀態</label><select id="caseStatus">${["洽談中","服務中","已完成","已取消"].map(s=>`<option ${c?.status===s?"selected":""}>${s}</option>`).join("")}</select></div>
-   <div class="field full"><label>客戶備註</label><textarea id="custNote">${esc(cu?.note||"")}</textarea></div>
-   <div class="field full"><label>案件備註</label><textarea id="caseNote">${esc(c?.note||"")}</textarea></div>
+  <div class="hint">
+   案件編號會自動產生。<br>
+   亡者只保留：姓名、性別、出生年月、死亡日期。<br>
+   聯絡電話、住址、備註全部放在「家屬代表人」資料。
+   本系統不設置「身分證字號」欄位。
   </div>
+
+  <div class="field">
+   <label>既有亡者資料（可不選）</label>
+   <select id="caseCustomer"><option value="">＋ 建立新的亡者資料</option>${options}</select>
+  </div>
+
+  <h3 style="margin:16px 0 8px">案件資料</h3>
+  <div class="form-grid">
+   <div class="field"><label>案件編號</label><input id="caseNo" value="${esc(c?.caseNo||getNextCaseNo())}" readonly style="background:#f3eee9;font-weight:700;color:#765238"></div>
+   <div class="field"><label>案件日期</label><input id="caseDate" type="date" value="${esc(c?.date||today())}"></div>
+   <div class="field"><label>案件狀態</label><select id="caseStatus">${["洽談中","服務中","已完成","已取消"].map(s=>`<option ${c?.status===s?"selected":""}>${s}</option>`).join("")}</select></div>
+  </div>
+
+  <h3 style="margin:18px 0 8px">亡者資料</h3>
+  <div class="form-grid">
+   <div class="field"><label>亡者姓名</label><input id="deceasedName" value="${esc(deceasedName)}" placeholder="請輸入亡者姓名"></div>
+   <div class="field"><label>性別</label><select id="gender">
+    <option value="">請選擇</option>
+    <option value="男" ${gender==="男"?"selected":""}>男</option>
+    <option value="女" ${gender==="女"?"selected":""}>女</option>
+    <option value="其他" ${gender==="其他"?"selected":""}>其他</option>
+   </select></div>
+   <div class="field"><label>出生年月</label><input id="birthDate" type="month" value="${esc(birthDate)}"></div>
+   <div class="field"><label>死亡日期</label><input id="deathDate" type="date" value="${esc(deathDate)}"></div>
+  </div>
+
+  <h3 style="margin:18px 0 8px">家屬代表人</h3>
+  <div class="form-grid">
+   <div class="field"><label>代表人姓名</label><input id="familyName" value="${esc(familyName)}" placeholder="請輸入家屬代表人姓名"></div>
+   <div class="field"><label>民國年</label><input id="familyRocYear" inputmode="numeric" value="${esc(familyRocYear)}" placeholder="例如：80"></div>
+   <div class="field"><label>跟亡者的關係</label><select id="familyRelation">
+    <option value="">請選擇</option>
+    ${relations.map(s=>`<option value="${esc(s)}" ${familyRelation===s?"selected":""}>${esc(s)}</option>`).join("")}
+   </select></div>
+   <div class="field"><label>代表人電話</label><input id="familyPhone" inputmode="tel" value="${esc(familyPhone)}" placeholder="請輸入家屬電話"></div>
+   <div class="field full"><label>代表人住址</label><input id="familyAddress" value="${esc(familyAddress)}" placeholder="請輸入家屬住址"></div>
+   <div class="field full"><label>代表人備註</label><textarea id="familyNote" placeholder="家屬代表人相關備註">${esc(familyNote)}</textarea></div>
+  </div>
+
+  <div class="field" style="margin-top:8px"><label>案件備註</label><textarea id="caseNote" placeholder="案件處理相關備註">${esc(c?.note||"")}</textarea></div>
+
   <div class="form-actions"><button id="cancelCase">取消</button><button id="saveCase" class="primary">儲存案件</button></div>
  `);
+
  document.getElementById("caseCustomer").onchange=function(){
   const x=data.customers.find(z=>z.id===this.value);
   if(x){
-   document.getElementById("custName").value=x.name||"";
-   document.getElementById("custPhone").value=x.phone||"";
-   document.getElementById("custAddress").value=x.address||"";
-   document.getElementById("custNote").value=x.note||"";
+   document.getElementById("deceasedName").value=x.deceasedName||x.name||"";
+   document.getElementById("gender").value=x.gender||"";
+   document.getElementById("birthDate").value=x.birthDate||"";
+   document.getElementById("familyPhone").value=x.phone||"";
+   document.getElementById("familyAddress").value=x.address||"";
+   document.getElementById("familyNote").value=x.note||"";
   }
  };
  document.getElementById("cancelCase").onclick=closeModal;
  document.getElementById("saveCase").onclick=()=>saveCase(caseId);
 }
+
 function saveCase(caseId){
- const name=document.getElementById("custName").value.trim();
- if(!name){alert("請輸入客戶姓名");return}
+ const deceasedName=document.getElementById("deceasedName").value.trim();
+ if(!deceasedName){alert("請輸入亡者姓名");return}
+
  const select=document.getElementById("caseCustomer").value;
  let cu=data.customers.find(x=>x.id===select);
+
+ const gender=document.getElementById("gender").value;
+ const birthDate=document.getElementById("birthDate").value;
+ const deathDate=document.getElementById("deathDate").value;
+ const familyName=document.getElementById("familyName").value.trim();
+ const familyRocYear=document.getElementById("familyRocYear").value.trim();
+ const familyRelation=document.getElementById("familyRelation").value;
+ const familyPhone=document.getElementById("familyPhone").value.trim();
+ const familyAddress=document.getElementById("familyAddress").value.trim();
+ const familyNote=document.getElementById("familyNote").value.trim();
+
+ const customerPayload={
+  deceasedName,name:deceasedName,gender,birthDate,
+  phone:familyPhone,address:familyAddress,note:familyNote
+ };
+
  if(!cu){
-  cu={id:uid(),name,phone:document.getElementById("custPhone").value.trim(),address:document.getElementById("custAddress").value.trim(),note:document.getElementById("custNote").value.trim(),createdAt:new Date().toISOString()};
+  cu={id:uid(),...customerPayload,createdAt:new Date().toISOString()};
   data.customers.push(cu);
  }else{
-  cu.name=name;cu.phone=document.getElementById("custPhone").value.trim();cu.address=document.getElementById("custAddress").value.trim();cu.note=document.getElementById("custNote").value.trim();
+  Object.assign(cu,customerPayload);
+  cu.updatedAt=new Date().toISOString();
  }
- const obj={id:caseId||uid(),customerId:cu.id,caseNo:document.getElementById("caseNo").value.trim()||("案件-"+Date.now()),name:cu.name,family:document.getElementById("family").value.trim(),date:document.getElementById("caseDate").value,status:document.getElementById("caseStatus").value,note:document.getElementById("caseNote").value.trim(),updatedAt:new Date().toISOString()};
+
+ const obj={
+  id:caseId||uid(),customerId:cu.id,
+  caseNo:document.getElementById("caseNo").value.trim()||getNextCaseNo(),
+  name:deceasedName,deceasedName,gender,birthDate,deathDate,
+  familyName,familyRocYear,familyRelation,familyPhone,familyAddress,familyNote,
+  family:familyName,
+  date:document.getElementById("caseDate").value,
+  status:document.getElementById("caseStatus").value,
+  note:document.getElementById("caseNote").value.trim(),
+  updatedAt:new Date().toISOString()
+ };
+
  const i=data.cases.findIndex(x=>x.id===caseId);
- if(i>=0)data.cases[i]=obj;else data.cases.unshift(obj);
+ if(i>=0)data.cases[i]=Object.assign({},data.cases[i],obj);
+ else data.cases.unshift(obj);
+
  saveData();closeModal();switchTab("cases");
 }
 
@@ -331,9 +427,24 @@ function renderCases(){
 }
 function renderCustomers(){
  const q=document.getElementById("customerSearch").value.toLowerCase();
- const arr=data.customers.filter(x=>(x.name+" "+x.phone+" "+x.address).toLowerCase().includes(q));
- document.getElementById("customerRows").innerHTML=arr.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.phone)}</td><td>${esc(x.address)}</td><td>${esc(x.note)}</td><td>${data.cases.filter(c=>c.customerId===x.id).length}</td><td><button onclick="window.__newCaseForCustomer('${x.id}')">新增案件</button></td></tr>`).join("")||"<tr><td colspan='6'>目前沒有客戶。</td></tr>";
+ const arr=data.customers.filter(x=>{
+  const name=x.deceasedName||x.name||"";
+  return (name+" "+(x.phone||"")+" "+(x.address||"")).toLowerCase().includes(q);
+ });
+ document.getElementById("customerRows").innerHTML=arr.map(x=>{
+  const cases=data.cases.filter(c=>c.customerId===x.id);
+  const latest=cases[0]||{};
+  return `<tr>
+   <td>${esc(x.deceasedName||x.name||"")}</td>
+   <td>${esc(latest.familyName||"")}</td>
+   <td>${esc(latest.familyPhone||x.phone||"")}</td>
+   <td>${esc(latest.familyAddress||x.address||"")}</td>
+   <td>${cases.length}</td>
+   <td><button onclick="window.__newCaseForCustomer('${x.id}')">新增案件</button></td>
+  </tr>`;
+ }).join("")||"<tr><td colspan='6'>目前沒有客戶。</td></tr>";
 }
+
 function renderStaff(){
  document.getElementById("staffRows").innerHTML=data.staff.map(x=>`<tr><td>${esc(x.name)}</td><td>${esc(x.account)}</td><td>${esc(x.role)}</td><td>${x.active===false?"停用":"啟用"}</td></tr>`).join("");
 }
@@ -342,15 +453,34 @@ window.__newCaseForCustomer=id=>openCase("",id);
 window.__deleteCase=id=>{if(confirm("確定刪除這筆案件嗎？")){data.cases=data.cases.filter(x=>x.id!==id);saveData()}};
 
 function exportCSV(){
- const rows=[["客戶姓名","聯絡電話","地址","客戶備註","案件編號","案件日期","家屬／關係人","案件狀態","案件備註"]];
- data.customers.forEach(c=>{
-  const cases=data.cases.filter(x=>x.customerId===c.id);
-  if(!cases.length)rows.push([c.name,c.phone,c.address,c.note,"","","","",""]);
-  else cases.forEach(x=>rows.push([c.name,c.phone,c.address,c.note,x.caseNo,x.date,x.family,x.status,x.note]));
+ const rows=[[
+  "案件編號","亡者姓名","性別","出生年月","死亡日期",
+  "家屬代表人","代表人民國年","跟亡者的關係","代表人電話","代表人住址",
+  "代表人備註","案件日期","案件狀態","案件備註"
+ ]];
+ data.cases.forEach(x=>{
+  const c=data.customers.find(y=>y.id===x.customerId)||{};
+  rows.push([
+   x.caseNo||"",
+   x.deceasedName||x.name||c.deceasedName||c.name||"",
+   x.gender||c.gender||"",
+   x.birthDate||c.birthDate||"",
+   x.deathDate||"",
+   x.familyName||x.family||"",
+   x.familyRocYear||"",
+   x.familyRelation||"",
+   x.familyPhone||c.phone||"",
+   x.familyAddress||c.address||"",
+   x.familyNote||c.note||"",
+   x.date||"",
+   x.status||"",
+   x.note||""
+  ]);
  });
  const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
  download("瑞賢禮儀社_全部客戶資料.csv",csv,"text/csv;charset=utf-8");
 }
+
 
 function openModal(title,body){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body;document.getElementById("modal").classList.remove("hidden")}
 function closeModal(){document.getElementById("modal").classList.add("hidden")}
