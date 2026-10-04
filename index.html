@@ -551,6 +551,23 @@ function renderCases(){
   return `<tr><td>${esc(x.caseNo)}</td><td>${esc(u.name||x.name)}</td><td>${esc(u.phone)}</td><td>${esc(u.address)}</td><td>${esc(x.date)}</td><td>${esc(x.status)}</td><td><button onclick="window.__editCase('${x.id}')">編輯</button><button class="danger" onclick="window.__deleteCase('${x.id}')">刪除</button></td></tr>`;
  }).join("")||"<tr><td colspan='7'>目前沒有案件。</td></tr>";
 }
+window.__deleteCustomer=function(customerId){
+ const customer=data.customers.find(x=>x.id===customerId);
+ if(!customer)return;
+ const deceasedName=customer.deceasedName||customer.name||"此客戶";
+ const relatedCases=data.cases.filter(x=>x.customerId===customerId);
+ let msg=`確定要刪除「${deceasedName}」的客戶資料嗎？\n\n刪除後無法復原。`;
+ if(relatedCases.length){
+  msg+=`\n\n此客戶目前有 ${relatedCases.length} 筆案件資料。\n若確認刪除，相關案件也會一併刪除。`;
+ }
+ if(!confirm(msg))return;
+ data.cases=data.cases.filter(x=>x.customerId!==customerId);
+ data.customers=data.customers.filter(x=>x.id!==customerId);
+ saveData();
+ renderAll();
+ alert("客戶資料已刪除。");
+};
+
 function renderCustomers(){
  const q=document.getElementById("customerSearch").value.toLowerCase();
  const arr=data.customers.filter(x=>{
@@ -566,7 +583,10 @@ function renderCustomers(){
    <td>${esc(latest.familyPhone||x.phone||"")}</td>
    <td>${esc(latest.familyAddress||x.address||"")}</td>
    <td>${cases.length}</td>
-   <td><button onclick="window.__newCaseForCustomer('${x.id}')">新增案件</button></td>
+   <td style="white-space:nowrap">
+    <button onclick="window.__newCaseForCustomer('${x.id}')">新增案件</button>
+    <button onclick="window.__deleteCustomer('${x.id}')" style="margin-left:6px">刪除客戶</button>
+   </td>
   </tr>`;
  }).join("")||"<tr><td colspan='6'>目前沒有客戶。</td></tr>";
 }
