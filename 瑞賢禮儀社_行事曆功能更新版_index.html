@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#765238">
+<title>瑞賢禮儀社</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#f3f7fb;color:#263442;font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Noto Sans",sans-serif;font-size:15px}body{min-height:100vh}button,input,select,textarea{font:inherit}button{border:0;cursor:pointer}.hidden{display:none!important}:root{--blue:#1677c8;--blue2:#0e68b2;--green:#39b871;--orange:#f0a13a;--red:#e65d5d;--line:#e6edf3;--muted:#7c8a97;--shadow:0 5px 18px rgba(35,71,104,.09)}
+#loginView{min-height:100vh;display:flex;align-items:flex-end;justify-content:center;padding:0 16px calc(22px + env(safe-area-inset-bottom));position:relative;overflow:hidden;background:linear-gradient(160deg,#79b6e7 0%,#d8eefb 48%,#eff8fb 100%)}#loginView:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 50% 31%,rgba(255,255,255,.92) 0 8%,transparent 30%),linear-gradient(155deg,transparent 0 49%,rgba(48,100,130,.20) 50% 64%,transparent 65%),linear-gradient(25deg,transparent 0 57%,rgba(42,100,131,.16) 58% 70%,transparent 71%)}#loginView:after{content:"";position:absolute;left:-15%;right:-15%;bottom:0;height:40%;background:radial-gradient(ellipse at 50% 20%,rgba(255,255,255,.72),transparent 56%),linear-gradient(180deg,rgba(255,255,255,.1),rgba(53,116,143,.22));filter:blur(1px)}.login-card{position:relative;z-index:2;width:min(420px,100%);text-align:center}.login-card h1{margin:0;color:#223b4e;font-size:32px;letter-spacing:3px;text-shadow:0 2px 8px #fff8}.login-card p{margin:5px 0 22px;color:#45677f;letter-spacing:4px}.login-panel{background:#fffffff2;border-radius:22px;padding:20px 18px 18px;box-shadow:0 14px 38px #1b476c2e;backdrop-filter:blur(10px)}.login-card input{display:block;width:100%;padding:12px;border:1px solid #dce6ee;border-radius:12px;margin:10px 0;background:#fff}.login-card button{width:100%;margin-top:8px;padding:12px;border-radius:12px}.login-card button.primary{background:linear-gradient(180deg,#2d8cdb,#1474c3);color:#fff;font-weight:800;box-shadow:0 5px 12px #1677c833}
+#appView{min-height:100vh;padding-bottom:76px}.topbar{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#177dcc,#126fba);color:#fff;height:auto;min-height:70px;padding:calc(10px + env(safe-area-inset-top)) 14px 11px;box-shadow:0 3px 12px #0c5c9d33}.topbar .brand{font-size:18px;font-weight:800;letter-spacing:1px}.topbar .logout{background:#ffffff1d;color:#fff;padding:8px 12px;border-radius:50%}.topbar:after{content:"";display:block}.tabs{display:none}.container{max-width:720px;margin:0 auto;padding:12px}.page-header,.hero{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.hero{background:linear-gradient(135deg,#197dcc,#3da3e5);color:#fff;border-radius:18px;padding:17px 16px;box-shadow:0 7px 20px #1677c82b}.hero h2,.page-header h2{margin:0 0 4px;font-size:20px}.hero p,.page-header p{margin:0;color:inherit;opacity:.82;font-size:12px}.actions{display:flex;flex-wrap:wrap;gap:6px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}.stat{background:#fff;border:1px solid #edf2f6;border-radius:14px;padding:13px 9px;box-shadow:var(--shadow)}.stat .label{color:#7b8a98;font-size:12px}.stat b{display:block;font-size:24px;margin-top:3px}.card,.table-wrap{background:#fff;border-radius:15px;border:1px solid #edf2f6;box-shadow:var(--shadow);padding:14px;margin-bottom:12px}.search{width:100%;padding:11px 12px;border:1px solid #e1e8ee;border-radius:12px;margin-bottom:9px;background:#fff;outline:none}.table-wrap{padding:0;overflow:hidden}table{border-collapse:collapse;width:100%}th,td{padding:11px;border-bottom:1px solid #edf0f3;text-align:left;vertical-align:top}th{background:#f7fafc;color:#71808d;font-size:12px}td{font-size:13px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}.field{margin:6px 0}.field.full{grid-column:1/-1}.field label{display:block;font-weight:700;color:#596a78;font-size:12px;margin-bottom:4px}.field input,.field select,.field textarea{width:100%;padding:10px;border:1px solid #dfe7ed;border-radius:9px;background:#fff}.field textarea{min-height:80px;resize:vertical}.hint{background:#edf7ff;border:1px solid #d7ecfb;color:#4e718a;padding:10px;border-radius:10px;line-height:1.55;font-size:12px;margin-bottom:10px}.primary{background:linear-gradient(180deg,#2d8cdb,#1474c3);color:#fff;border-radius:10px;padding:10px 15px;font-weight:700}.danger{background:#fff0f0;color:#d04b4b;border-radius:10px;padding:9px 12px}.file-button{display:inline-block;padding:10px 15px;border-radius:10px;background:#eef3f7;color:#526777;cursor:pointer;margin:3px}.file-button input{display:none}
+.section-head{display:flex;align-items:center;justify-content:space-between;padding:2px 2px 9px}.section-head h3{font-size:15px;margin:0}.section-head button{background:none;color:var(--blue);font-size:12px}.schedule-list{padding:0}.schedule-item{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid #f0f2f5}.schedule-item:last-child{border-bottom:0}.time{font-weight:700;color:#597184;font-size:12px}.schedule-item b{font-size:13px}.schedule-item small{display:block;color:#8a98a4;margin-top:2px}.badge{font-size:11px;padding:4px 8px;border-radius:999px;background:#eaf5ff;color:#1677c8;white-space:nowrap}.badge.done{background:#e7f8ef;color:#27a660}.badge.wait{background:#fff4df;color:#d58b22}.quick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}.quick-btn{background:#fff;border:1px solid #edf2f6;border-radius:14px;padding:13px 6px;text-align:center;box-shadow:var(--shadow);color:#315064}.quick-btn b{display:block;font-size:12px;margin-top:4px}.quick-btn span{font-size:21px}.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:25;background:#fffffff7;border-top:1px solid #e2e8ee;box-shadow:0 -4px 15px #355d7710;padding:5px 6px calc(5px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr)}.bottom-nav button{background:none;color:#8593a0;font-size:10px;padding:4px 1px;border-radius:9px}.bottom-nav button span{display:block;font-size:19px;line-height:21px}.bottom-nav button.active{color:#1677c8;background:#eef7ff;font-weight:700}.fab{position:fixed;right:16px;bottom:85px;z-index:15;background:#1677c8;color:#fff;border-radius:999px;padding:12px 17px;box-shadow:0 7px 18px #1677c855;font-weight:800}
+.modal{position:fixed;inset:0;z-index:9999;background:#0007;display:flex;align-items:flex-end;justify-content:center;padding:0}.modal-card{position:relative;background:#fff;width:min(720px,100%);height:min(92vh,850px);border-radius:20px 20px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px #0004}.modal-head{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 15px;border-bottom:1px solid #e9edf1;background:#fff}.modal-head h2{margin:0;font-size:18px}.modal-body{flex:1;overflow-y:auto;padding:12px 14px 100px;-webkit-overflow-scrolling:touch}.close{width:36px;height:36px;border-radius:50%;background:#eef2f5;color:#647481;font-size:24px;line-height:36px;padding:0}.form-actions{position:sticky;bottom:0;background:#fff;border-top:1px solid #e8edf1;padding:11px 0 3px;display:flex;gap:8px;z-index:3}.form-actions button{flex:1;min-height:44px}
+@media(max-width:680px){.container{padding:10px}.page-header,.hero{align-items:flex-start;flex-direction:column}.actions{width:100%}.actions button{flex:1}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.modal-card{height:min(94vh,850px)}.modal-body{padding:11px 11px 100px}.topbar{padding-left:11px;padding-right:11px}.stats{gap:6px}.stat{padding:11px 7px}.stat b{font-size:21px}}
+@media(min-width:721px){body{background:#dfe9f1}.app-shell{max-width:720px;margin:0 auto;min-height:100vh;background:#f3f7fb;box-shadow:0 0 30px #31516b18}.bottom-nav{max-width:720px;left:50%;right:auto;width:720px;transform:translateX(-50%)}}
+\n@media(max-width:680px){\n #customers .table-wrap,#cases .table-wrap{background:transparent;box-shadow:none;border:0;overflow:visible}\n #customers table,#cases table{display:block;min-width:0}\n #customers thead,#cases thead{display:none}\n #customers tbody,#cases tbody{display:block}\n #customers tr,#cases tr{display:grid;grid-template-columns:1fr auto;gap:5px 10px;background:#fff;border:1px solid #e8eef3;border-radius:15px;margin-bottom:9px;padding:13px;box-shadow:var(--shadow)}\n #customers td,#cases td{display:block;border:0;padding:0;font-size:12px;color:#71808d}\n #customers td:nth-child(1),#cases td:nth-child(1){grid-column:1/2;font-size:14px;font-weight:800;color:#263442}\n #customers td:nth-child(2),#cases td:nth-child(2){grid-column:1/2}\n #customers td:nth-child(3),#cases td:nth-child(3){grid-column:1/2}\n #customers td:nth-child(4),#cases td:nth-child(4){grid-column:1/2}\n #customers td:nth-child(5),#cases td:nth-child(5){grid-column:2/3;grid-row:1/3;text-align:right}\n #customers td:last-child,#cases td:last-child{grid-column:1/-1;display:flex;gap:6px;margin-top:7px;padding-top:8px;border-top:1px solid #eef2f5}\n #customers td:last-child button,#cases td:last-child button{flex:1}\n}\n.staff-edit-note{font-size:12px;color:#7c8a97;margin-top:7px}
+</style>
+</head>
+<body>
+
+<div id="loginView">
+  <div class="login-card">
+    <h1>瑞賢禮儀社</h1>
+    <p>殯葬案件管理系統</p>
+    <input id="loginAccount" placeholder="帳號" autocomplete="username">
+    <input id="loginPassword" type="password" placeholder="密碼" autocomplete="current-password">
+    <button id="loginBtn" class="primary">登入</button>
+  </div>
+</div>
+
+<div id="appView" class="hidden">
+  <header class="topbar">
+    <div class="brand">瑞賢禮儀社</div>
+    <button class="logout" id="logoutBtn">登出</button>
+  </header>
+
+  <nav class="tabs">
+    <button data-tab="dashboard" class="active">總覽</button>
+    <button data-tab="cases">案件</button>
+    <button data-tab="customers">客戶</button>
+    <button data-tab="staff">員工</button>
+    <button data-tab="backup">備份</button>
+  </nav>
+
+  <main class="container">
+    <section id="dashboard" class="page">
+      <div class="hero">
+        <div><h2>案件管理</h2><p>以「新增案件」建立完整客戶資料。</p></div>
+        <button id="newCaseHome" class="primary">＋ 新增案件</button>
+      </div>
+      <div id="stats" class="stats"></div>
+      <div class="quick-grid">
+        <button class="quick-btn" id="quickCustomers"><span>👥</span><b>客戶資料</b></button>
+        <button class="quick-btn" id="quickCases"><span>▤</span><b>案件管理</b></button>
+        <button class="quick-btn" id="quickSchedule"><span>▣</span><b>行事曆</b></button>
+        <button class="quick-btn" id="quickPayment"><span>＄</span><b>收款管理</b></button>
+        <button class="quick-btn" id="quickSearch"><span>⌕</span><b>搜尋案件</b></button>
+        <button class="quick-btn" id="quickMore"><span>⊞</span><b>更多</b></button>
+      </div>
+      <div class="card"><div class="section-head"><h3>最近案件</h3></div><div id="recentCases"></div></div>
+    </section>
+
+    <section id="cases" class="page hidden">
+      <div class="page-header">
+        <div><h2>案件</h2><p>新增案件時可直接建立完整客戶資料。</p></div>
+        <div class="actions">
+          <button id="newCaseBtn" class="primary">＋ 新增案件</button>
+          <button id="exportCsv1">匯出全部客戶資料</button>
+        </div>
+      </div>
+      <input id="caseSearch" class="search" placeholder="搜尋案件編號、姓名、電話、地址">
+      <div class="table-wrap"><table>
+        <thead><tr><th>案件編號</th><th>客戶</th><th>電話</th><th>地址</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
+        <tbody id="caseRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="customers" class="page hidden">
+      <div class="page-header">
+        <div><h2>所有客戶資料</h2><p>客戶資料由案件建立與更新。</p></div>
+        <button id="exportCsv2">匯出全部客戶資料</button>
+      </div>
+      <input id="customerSearch" class="search" placeholder="搜尋姓名、電話、地址">
+      <div class="table-wrap"><table>
+        <thead><tr><th>亡者姓名</th><th>家屬</th><th>代表人電話</th><th>代表人住址</th><th>案件數</th><th>操作</th></tr></thead>
+        <tbody id="customerRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="schedule" class="page hidden">
+      <div class="page-header"><div><h2>行事曆</h2><p id="calendarTitle">本月行程</p></div><button id="newScheduleBtn" class="primary">＋ 新增行程</button></div>
+      <div class="card" id="calendarBox"></div>
+      <div class="card"><div class="section-head"><h3 id="selectedDateTitle">今日行程</h3><button id="addSelectedScheduleBtn">＋ 新增</button></div><div id="scheduleList"></div></div>
+    </section>
+
+    <section id="staff" class="page hidden">
+      <div class="page-header">
+        <h2>員工／帳號</h2>
+        <div><button id="changeOwnerBtn">修改負責人帳號／密碼</button><button id="newStaffBtn" class="primary">＋ 新增員工</button></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>姓名</th><th>帳號</th><th>角色</th><th>狀態</th></tr></thead>
+        <tbody id="staffRows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="backup" class="page hidden">
+      <div class="page-header"><h2>備份與匯出</h2></div>
+      <div class="card">
+        <button id="backupBtn" class="primary">下載完整備份</button>
+        <label class="file-button">匯入完整備份<input id="restoreFile" type="file" accept=".json"></label>
+      </div>
+      <div class="card">
+        <h3>全部客戶資料</h3>
+        <p>會把目前所有客戶及其案件資料整理成 CSV。</p>
+        <button id="exportCsv3">下載全部客戶資料 CSV</button>
+      </div>
+    </section>
+  </main>
+  <button class="fab" id="fabNewCase">＋ 新增案件</button>
+  <nav class="bottom-nav">
+    <button data-tab="dashboard" class="active"><span>⌂</span>首頁</button>
+    <button data-tab="customers"><span>♟</span>客戶</button>
+    <button data-tab="cases"><span>▤</span>案件</button>
+    <button data-tab="schedule"><span>▣</span>行事曆</button>
+    <button data-tab="staff"><span>♙</span>我的</button>
+  </nav>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2 id="modalTitle"></h2>
+      <button class="close" id="modalClose">×</button>
+    </div>
+    <div id="modalBody" class="modal-body"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const DATA_KEY="ruixian_funeral_data_v2";
+const SESSION_KEY="ruixian_funeral_session_v2";
+const OWNER_KEY="ruixian_owner_account_v1";
+const DEFAULT={
+ customers:[],cases:[],payments:[],expenses:[],schedules:[],
+ staff:[{id:"owner",name:"瑞賢禮儀社負責人",account:"owner",password:"123456",role:"負責人",active:true}]
+};
+let data=loadData();
+
+function clone(x){return JSON.parse(JSON.stringify(x))}
+function loadData(){
+ try{
+  const x=JSON.parse(localStorage.getItem(DATA_KEY)||"null");
+  if(!x)return clone(DEFAULT);
+  return {
+   customers:Array.isArray(x.customers)?x.customers:[],
+   cases:Array.isArray(x.cases)?x.cases:[],
+   payments:Array.isArray(x.payments)?x.payments:[],
+   expenses:Array.isArray(x.expenses)?x.expenses:[],
+   schedules:Array.isArray(x.schedules)?x.schedules:[],
+   staff:Array.isArray(x.staff)&&x.staff.length?x.staff:clone(DEFAULT.staff)
+  };
+ }catch(e){return clone(DEFAULT)}
+}
+function saveData(){localStorage.setItem(DATA_KEY,JSON.stringify(data));renderAll()}
+function owner(){
+ try{
+  const x=JSON.parse(localStorage.getItem(OWNER_KEY)||"null");
+  if(x&&x.account&&x.password)return x;
+ }catch(e){}
+ return {account:"owner",password:"123456"};
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function today(){return new Date().toISOString().slice(0,10)}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function download(name,text,type){
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([text],{type:type||"text/plain;charset=utf-8"}));
+ a.download=name;document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function showApp(){document.getElementById("loginView").classList.add("hidden");document.getElementById("appView").classList.remove("hidden");renderAll()}
+function showLogin(){document.getElementById("appView").classList.add("hidden");document.getElementById("loginView").classList.remove("hidden")}
+function switchTab(t){
+ document.querySelectorAll(".tabs button,.bottom-nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===t));
+ document.querySelectorAll(".page").forEach(p=>p.classList.toggle("hidden",p.id!==t));
+ renderAll();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
+document.getElementById("fabNewCase").onclick=()=>openCase();
+document.getElementById("quickCustomers").onclick=()=>switchTab("customers");
+document.getElementById("quickCases").onclick=()=>switchTab("cases");
+document.getElementById("quickSchedule").onclick=()=>switchTab("schedule"); document.getElementById("newScheduleBtn").onclick=()=>openSchedule(); document.getElementById("addSelectedScheduleBtn").onclick=()=>openSchedule();
+document.getElementById("quickPayment").onclick=()=>switchTab("backup");
+document.getElementById("quickSearch").onclick=()=>{switchTab("cases");setTimeout(()=>document.getElementById("caseSearch").focus(),80)};
+document.getElementById("quickMore").onclick=()=>switchTab("staff");
+document.getElementById("logoutBtn").onclick=()=>{localStorage.removeItem(SESSION_KEY);showLogin()};
+document.getElementById("loginBtn").onclick=login;
+document.getElementById("loginPassword").onkeydown=e=>{if(e.key==="Enter")login()};
+function login(){
+ const a=document.getElementById("loginAccount").value.trim();
+ const p=document.getElementById("loginPassword").value;
+ const o=owner();
+ const s=data.staff.find(x=>x.active!==false&&x.account===a&&x.password===p);
+ if((a===o.account&&p===o.password)||s){localStorage.setItem(SESSION_KEY,"1");showApp()}
+ else alert("帳號或密碼錯誤");
+}
+
+document.getElementById("newCaseHome").onclick=()=>openCase();
+document.getElementById("newCaseBtn").onclick=()=>openCase();
+document.getElementById("caseSearch").oninput=renderCases;
+document.getElementById("customerSearch").oninput=renderCustomers;
+document.getElementById("exportCsv1").onclick=exportCSV;
+document.getElementById("exportCsv2").onclick=exportCSV;
+document.getElementById("exportCsv3").onclick=exportCSV;
+document.getElementById("backupBtn").onclick=()=>download("瑞賢禮儀社_完整備份.json",JSON.stringify(data,null,2),"application/json;charset=utf-8");
+
+function getNextCaseNo(){
+ const rocYear=new Date().getFullYear()-1911;
+ const prefix=String(rocYear);
+ let max=0;
+ data.cases.forEach(x=>{
+  const m=String(x.caseNo||"").match(new RegExp("^"+prefix+"-(\\d+)$"));
+  if(m)max=Math.max(max,parseInt(m[1],10)||0);
+ });
+ return prefix+"-"+String(max+1).padStart(3,"0");
+}
+
+function openCase(caseId="",customerId=""){
+ const c=caseId?data.cases.find(x=>x.id===caseId):null;
+ const cu=c?data.customers.find(x=>x.id===c.customerId):data.customers.find(x=>x.id===customerId);
+
+ const deceasedName=cu?.deceasedName||cu?.name||c?.deceasedName||c?.name||"";
+ const gender=cu?.gender||c?.gender||"";
+ const birthDate=cu?.birthDate||c?.birthDate||"";
+ const deathDate=c?.deathDate||"";
+
+ const familyName=c?.familyName||"";
+ const familyRocYear=c?.familyRocYear||"";
+ const familyRelation=c?.familyRelation||"";
+ const familyPhone=c?.familyPhone||cu?.phone||"";
+ const familyAddress=c?.familyAddress||cu?.address||"";
+ const familyNote=c?.familyNote||cu?.note||"";
+
+ const options=data.customers.map(x=>`<option value="${esc(x.id)}" ${cu&&cu.id===x.id?"selected":""}>${esc(x.deceasedName||x.name||"")}｜${esc(x.familyName||x.phone||"")}</option>`).join("");
+ const relations=["配偶","父親","母親","兒子","女兒","兄弟","姊妹","祖父","祖母","孫子","孫女","其他"];
+
+ openModal(c?"編輯案件":"新增案件",`
+  <div class="hint">
+   案件編號會自動產生。<br>
+   亡者只保留：姓名、性別、出生年月、死亡日期。<br>
+   聯絡電話、住址、備註全部放在「家屬代表人」資料。
+   本系統不設置「身分證字號」欄位。
+  </div>
+
+  <div class="field">
+   <label>既有亡者資料（可不選）</label>
+   <select id="caseCustomer"><option value="">＋ 建立新的亡者資料</option>${options}</select>
+  </div>
+
+  <h3 style="margin:16px 0 8px">案件資料</h3>
+  <div class="form-grid">
+   <div class="field"><label>案件編號</label><input id="caseNo" value="${esc(c?.caseNo||getNextCaseNo())}" readonly style="background:#f3eee9;font-weight:700;color:#765238"></div>
+   <div class="field"><label>案件日期</label><input id="caseDate" type="date" value="${esc(c?.date||today())}"></div>
+   <div class="field"><label>案件狀態</label><select id="caseStatus">${["洽談中","服務中","已完成","已取消"].map(s=>`<option ${c?.status===s?"selected":""}>${s}</option>`).join("")}</select></div>
+  </div>
+
+  <h3 style="margin:18px 0 8px">亡者資料</h3>
+  <div class="form-grid">
+   <div class="field"><label>亡者姓名</label><input id="deceasedName" value="${esc(deceasedName)}" placeholder="請輸入亡者姓名"></div>
+   <div class="field"><label>性別</label><select id="gender">
+    <option value="">請選擇</option>
+    <option value="男" ${gender==="男"?"selected":""}>男</option>
+    <option value="女" ${gender==="女"?"selected":""}>女</option>
+    <option value="其他" ${gender==="其他"?"selected":""}>其他</option>
+   </select></div>
+   <div class="field">
+    <label>出生日期類別</label>
+    <select id="birthCalendar">
+      <option value="國曆" ${((cu?.birthCalendar||c?.birthCalendar||"國曆")==="國曆")?"selected":""}>國曆</option>
+      <option value="農曆" ${((cu?.birthCalendar||c?.birthCalendar||"")==="農曆")?"selected":""}>農曆</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>出生日期（民國年）</label>
+    <input id="birthDate" value="${esc(birthDate)}" placeholder="例如：75年8月12日">
+   </div>
+   <div class="field">
+    <label>死亡日期類別</label>
+    <select id="deathCalendar">
+      <option value="國曆" ${((c?.deathCalendar||"國曆")==="國曆")?"selected":""}>國曆</option>
+      <option value="農曆" ${((c?.deathCalendar||"")==="農曆")?"selected":""}>農曆</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>死亡日期（民國年）</label>
+    <input id="deathDate" value="${esc(deathDate)}" placeholder="例如：115年10月3日"> 
+   </div>
+  </div>
+
+  
+<h3 style="margin:18px 0 8px">家屬資料</h3>
+<div id="familyMembers">
+  <div class="family-member" data-family-index="0" style="border:1px solid #e5ddd2;border-radius:12px;padding:12px;margin-bottom:10px;background:rgba(250,247,242,.7)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>家屬 1</strong>
+    </div>
+    <div class="form-grid">
+      <div class="field"><label>家屬姓名</label><input class="familyName" value="${esc(familyName)}" placeholder="請輸入家屬姓名"></div>
+      <div class="field"><label>民國年</label><input class="familyRocYear" inputmode="numeric" value="${esc(familyRocYear)}" placeholder="例如：80"></div>
+      <div class="field"><label>跟亡者的關係</label><select class="familyRelation">
+        <option value="">請選擇</option>
+        ${["配偶","父親","母親","兒子","女兒","兄弟","姊妹","祖父","祖母","孫子","孫女","外孫","外孫女","其他"].map(s=>`<option value="${esc(s)}" ${familyRelation===s?"selected":""}>${esc(s)}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>電話</label><input class="familyPhone" inputmode="tel" value="${esc(familyPhone)}" placeholder="請輸入電話"></div>
+      <div class="field full"><label>住址</label><input class="familyAddress" value="${esc(familyAddress)}" placeholder="請輸入住址"></div>
+      <div class="field full"><label>備註</label><textarea class="familyNote" placeholder="家屬相關備註">${esc(familyNote)}</textarea></div>
+    </div>
+  </div>
+</div>
+<button type="button" id="addFamilyMember" style="margin:2px 0 10px">＋ 新增家屬</button>
+<div class="field" style="margin-top:8px"><label>案件備註</label><textarea id="caseNote" placeholder="案件處理相關備註">${esc(c?.note||"")}</textarea></div>
+
+  <div class="form-actions"><button id="cancelCase">取消</button><button id="saveCase" class="primary">儲存案件</button></div>
+ `);
+
+ document.getElementById("caseCustomer").onchange=function(){
+  const x=data.customers.find(z=>z.id===this.value);
+  if(x){
+   document.getElementById("deceasedName").value=x.deceasedName||x.name||"";
+   document.getElementById("gender").value=x.gender||"";
+   document.getElementById("birthCalendar").value=x.birthCalendar||"國曆";
+   document.getElementById("birthDate").value=x.birthDate||"";
+   const fm=document.querySelector(".family-member");
+   if(fm){
+    fm.querySelector(".familyPhone").value=x.phone||"";
+    fm.querySelector(".familyAddress").value=x.address||"";
+    fm.querySelector(".familyNote").value=x.note||"";
+   }
+  }
+ };
+ setupFamilyMembers(c?.familyMembers||((familyName||familyPhone||familyAddress||familyNote)?[{
+   name:familyName,rocYear:familyRocYear,relation:familyRelation,phone:familyPhone,address:familyAddress,note:familyNote
+  }]:[]));
+ document.getElementById("cancelCase").onclick=closeModal;
+ document.getElementById("saveCase").onclick=()=>saveCase(caseId);
+}
+
+function setupFamilyMembers(existingMembers){
+ const wrap=document.getElementById("familyMembers");
+ const addBtn=document.getElementById("addFamilyMember");
+ if(!wrap||!addBtn)return;
+
+ function relationsOptions(selected){
+  return ["配偶","父親","母親","兒子","女兒","兄弟","姊妹","祖父","祖母","孫子","孫女","外孫","外孫女","其他"]
+   .map(s=>`<option value="${esc(s)}" ${selected===s?"selected":""}>${esc(s)}</option>`).join("");
+ }
+ function addMember(m={}){
+  const idx=wrap.querySelectorAll(".family-member").length+1;
+  const div=document.createElement("div");
+  div.className="family-member";
+  div.style.cssText="border:1px solid #e5ddd2;border-radius:12px;padding:12px;margin-bottom:10px;background:rgba(250,247,242,.7)";
+  div.innerHTML=`
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <strong>家屬 ${idx}</strong>
+    <button type="button" class="removeFamily" ${idx===1?"style=\"display:none\"":""}>刪除</button>
+   </div>
+   <div class="form-grid">
+    <div class="field"><label>家屬姓名</label><input class="familyName" value="${esc(m.name||"")}" placeholder="請輸入家屬姓名"></div>
+    <div class="field"><label>民國年</label><input class="familyRocYear" inputmode="numeric" value="${esc(m.rocYear||"")}" placeholder="例如：80"></div>
+    <div class="field"><label>跟亡者的關係</label><select class="familyRelation"><option value="">請選擇</option>${relationsOptions(m.relation||"")}</select></div>
+    <div class="field"><label>電話</label><input class="familyPhone" inputmode="tel" value="${esc(m.phone||"")}" placeholder="請輸入電話"></div>
+    <div class="field full"><label>住址</label><input class="familyAddress" value="${esc(m.address||"")}" placeholder="請輸入住址"></div>
+    <div class="field full"><label>備註</label><textarea class="familyNote" placeholder="家屬相關備註">${esc(m.note||"")}</textarea></div>
+   </div>`;
+  wrap.appendChild(div);
+  div.querySelector(".removeFamily")?.addEventListener("click",()=>{div.remove();renumber();});
+ }
+ function renumber(){
+  wrap.querySelectorAll(".family-member").forEach((el,i)=>{
+   el.querySelector("strong").textContent=`家屬 ${i+1}`;
+   const btn=el.querySelector(".removeFamily");
+   if(btn)btn.style.display=i===0?"none":"";
+  });
+ }
+ wrap.innerHTML="";
+ (existingMembers&&existingMembers.length?existingMembers:[{}]).forEach(addMember);
+ addBtn.onclick=()=>addMember({});
+}
+
+function saveCase(caseId){
+ const deceasedName=document.getElementById("deceasedName").value.trim();
+ if(!deceasedName){alert("請輸入亡者姓名");return}
+
+ const select=document.getElementById("caseCustomer").value;
+ let cu=data.customers.find(x=>x.id===select);
+
+ const gender=document.getElementById("gender").value;
+ const birthCalendar=document.getElementById("birthCalendar").value;
+ const birthDate=document.getElementById("birthDate").value.trim();
+ const deathCalendar=document.getElementById("deathCalendar").value;
+ const deathDate=document.getElementById("deathDate").value.trim();
+ const familyMembers=[...document.querySelectorAll(".family-member")].map(el=>({
+  name:el.querySelector(".familyName")?.value.trim()||"",
+  rocYear:el.querySelector(".familyRocYear")?.value.trim()||"",
+  relation:el.querySelector(".familyRelation")?.value||"",
+  phone:el.querySelector(".familyPhone")?.value.trim()||"",
+  address:el.querySelector(".familyAddress")?.value.trim()||"",
+  note:el.querySelector(".familyNote")?.value.trim()||""
+ })).filter(x=>x.name||x.phone||x.address||x.note||x.relation);
+ const familyName=familyMembers[0]?.name||"";
+ const familyRocYear=familyMembers[0]?.rocYear||"";
+ const familyRelation=familyMembers[0]?.relation||"";
+ const familyPhone=familyMembers[0]?.phone||"";
+ const familyAddress=familyMembers[0]?.address||"";
+ const familyNote=familyMembers[0]?.note||"";
+
+ const customerPayload={
+  deceasedName,name:deceasedName,gender,birthDate,birthCalendar,
+  phone:familyPhone,address:familyAddress,note:familyNote
+ };
+
+ if(!cu){
+  cu={id:uid(),...customerPayload,createdAt:new Date().toISOString()};
+  data.customers.push(cu);
+ }else{
+  Object.assign(cu,customerPayload);
+  cu.updatedAt=new Date().toISOString();
+ }
+
+ const obj={
+  id:caseId||uid(),customerId:cu.id,
+  caseNo:document.getElementById("caseNo").value.trim()||getNextCaseNo(),
+  name:deceasedName,deceasedName,gender,birthDate,birthCalendar,deathDate,deathCalendar,
+  familyMembers,
+  familyName,familyRocYear,familyRelation,familyPhone,familyAddress,familyNote,
+  family:familyName,
+  date:document.getElementById("caseDate").value,
+  status:document.getElementById("caseStatus").value,
+  note:document.getElementById("caseNote").value.trim(),
+  updatedAt:new Date().toISOString()
+ };
+
+ const i=data.cases.findIndex(x=>x.id===caseId);
+ if(i>=0)data.cases[i]=Object.assign({},data.cases[i],obj);
+ else data.cases.unshift(obj);
+
+ saveData();closeModal();switchTab("cases");
+}
+
+function renderAll(){renderDashboard();renderCases();renderCustomers();renderStaff();renderSchedule()}
+function renderDashboard(){
+ document.getElementById("stats").innerHTML=
+ `<div class="stat"><span class="label">案件總數</span><b>${data.cases.length}</b></div>
+  <div class="stat"><span class="label">客戶總數</span><b>${data.customers.length}</b></div>
+  <div class="stat"><span class="label">服務中案件</span><b>${data.cases.filter(x=>x.status==="服務中").length}</b></div>`;
+ document.getElementById("recentCases").innerHTML=data.cases.slice(0,8).map(x=>`<div class="card" style="margin-bottom:8px"><b>${esc(x.caseNo)}</b>　${esc(x.name)}　${esc(x.date)}　${esc(x.status)}</div>`).join("")||"<p>目前尚無案件。</p>";
+}
+function renderCases(){
+ const q=document.getElementById("caseSearch").value.toLowerCase();
+ const arr=data.cases.filter(x=>{const u=data.customers.find(c=>c.id===x.customerId)||{};return (x.caseNo+" "+u.name+" "+u.phone+" "+u.address).toLowerCase().includes(q)});
+ document.getElementById("caseRows").innerHTML=arr.map(x=>{
+  const u=data.customers.find(c=>c.id===x.customerId)||{};
+  return `<tr><td>${esc(x.caseNo)}</td><td>${esc(u.name||x.name)}</td><td>${esc(u.phone)}</td><td>${esc(u.address)}</td><td>${esc(x.date)}</td><td>${esc(x.status)}</td><td><button onclick="window.__editCase('${x.id}')">編輯</button><button class="danger" onclick="window.__deleteCase('${x.id}')">刪除</button></td></tr>`;
+ }).join("")||"<tr><td colspan='7'>目前沒有案件。</td></tr>";
+}
+window.__deleteCustomer=function(customerId){
+ const customer=data.customers.find(x=>x.id===customerId);
+ if(!customer)return;
+ const deceasedName=customer.deceasedName||customer.name||"此客戶";
+ const relatedCases=data.cases.filter(x=>x.customerId===customerId);
+ let msg=`確定要刪除「${deceasedName}」的客戶資料嗎？\n\n刪除後無法復原。`;
+ if(relatedCases.length){
+  msg+=`\n\n此客戶目前有 ${relatedCases.length} 筆案件資料。\n若確認刪除，相關案件也會一併刪除。`;
+ }
+ if(!confirm(msg))return;
+ data.cases=data.cases.filter(x=>x.customerId!==customerId);
+ data.customers=data.customers.filter(x=>x.id!==customerId);
+ saveData();
+ renderAll();
+ alert("客戶資料已刪除。");
+};
+
+function renderCustomers(){
+ const q=document.getElementById("customerSearch").value.toLowerCase();
+ const arr=data.customers.filter(x=>{
+  const name=x.deceasedName||x.name||"";
+  return (name+" "+(x.phone||"")+" "+(x.address||"")).toLowerCase().includes(q);
+ });
+ document.getElementById("customerRows").innerHTML=arr.map(x=>{
+  const cases=data.cases.filter(c=>c.customerId===x.id);
+  const latest=cases[0]||{};
+  return `<tr>
+   <td>${esc(x.deceasedName||x.name||"")}</td>
+   <td>${esc(latest.familyName||"")}</td>
+   <td>${esc(latest.familyPhone||x.phone||"")}</td>
+   <td>${esc(latest.familyAddress||x.address||"")}</td>
+   <td>${cases.length}</td>
+   <td style="white-space:nowrap">
+    <button onclick="window.__newCaseForCustomer('${x.id}')">新增案件</button>
+    <button onclick="window.__deleteCustomer('${x.id}')" style="margin-left:6px">刪除客戶</button>
+   </td>
+  </tr>`;
+ }).join("")||"<tr><td colspan='6'>目前沒有客戶。</td></tr>";
+}
+
+let calendarViewDate=new Date();
+let selectedScheduleDate=today();
+function pad2(n){return String(n).padStart(2,"0")}
+function dateKey(y,m,d){return `${y}-${pad2(m+1)}-${pad2(d)}`}
+function formatScheduleDate(key){const [y,m,d]=String(key).split("-").map(Number);return y&&m&&d?`${y}年${m}月${d}日`:key}
+function renderSchedule(){
+ const box=document.getElementById("calendarBox"),list=document.getElementById("scheduleList"); if(!box||!list)return;
+ const y=calendarViewDate.getFullYear(),m=calendarViewDate.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),labels=["日","一","二","三","四","五","六"];
+ document.getElementById("calendarTitle").textContent=`${y}年${m+1}月`;
+ let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button onclick="window.__calendarPrev()">‹ 上個月</button><b>${y}年${m+1}月</b><button onclick="window.__calendarNext()">下個月 ›</button></div>`;
+ h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;color:#7f8d99">'+labels.map(x=>`<div style="padding:5px;font-weight:700">${x}</div>`).join("");
+ for(let i=0;i<first;i++)h+='<div></div>';
+ for(let d=1;d<=days;d++){
+  const key=dateKey(y,m,d),count=data.schedules.filter(x=>x.date===key).length,isSelected=key===selectedScheduleDate,isToday=key===today();
+  const bg=isSelected?'#1677c8':(isToday?'#eaf5ff':'#fff'),color=isSelected?'#fff':'#263442';
+  h+=`<button onclick="window.__selectScheduleDate('${key}')" style="min-height:52px;padding:5px 2px;border:1px solid ${isSelected?'#1677c8':'#edf2f6'};border-radius:10px;background:${bg};color:${color};font-weight:${isSelected||isToday?'800':'500'}">${d}${count?`<span style="display:block;font-size:10px;margin-top:2px;opacity:.9">● ${count}</span>`:'<span style="display:block;height:12px"></span>'}</button>`;
+ }
+ h+='</div>';box.innerHTML=h;
+ const chosen=selectedScheduleDate,items=data.schedules.filter(x=>x.date===chosen).sort((a,b)=>String(a.time||a.startTime||"").localeCompare(String(b.time||b.startTime||"")));
+ document.getElementById("selectedDateTitle").textContent=`${formatScheduleDate(chosen)} 行程`;
+ list.innerHTML=items.map(x=>`<div class="schedule-item" style="grid-template-columns:55px 1fr auto;cursor:pointer" onclick="window.__editSchedule('${x.id}')" title="點選修改"><span class="time">${esc(x.time||x.startTime||"09:00")}</span><div><b>${esc(x.title||x.name||"行程")}</b><small>${esc(x.customer||x.deceasedName||x.note||"")}</small></div><span style="color:#1677c8;font-size:12px">編輯</span></div>`).join("")||'<div style="padding:15px 0;text-align:center;color:#8a98a4">這一天尚無排定行程</div>';
+}
+window.__selectScheduleDate=function(key){selectedScheduleDate=key;const [y,m]=key.split("-").map(Number);calendarViewDate=new Date(y,m-1,1);renderSchedule()};
+window.__calendarPrev=function(){calendarViewDate=new Date(calendarViewDate.getFullYear(),calendarViewDate.getMonth()-1,1);renderSchedule()};
+window.__calendarNext=function(){calendarViewDate=new Date(calendarViewDate.getFullYear(),calendarViewDate.getMonth()+1,1);renderSchedule()};
+function openSchedule(id){
+ const existing=id?data.schedules.find(x=>x.id===id):null,d=existing?.date||selectedScheduleDate||today();
+ openModal(existing?"修改行程":"新增行程",`<div class="hint">選擇日期後可以新增行程；點選既有行程即可修改或刪除。</div><div class="form-grid">
+ <div class="field"><label>日期</label><input id="scheduleDate" type="date" value="${esc(d)}"></div>
+ <div class="field"><label>時間</label><input id="scheduleTime" type="time" value="${esc(existing?.time||existing?.startTime||"09:00")}"></div>
+ <div class="field full"><label>行程／事項</label><input id="scheduleTitle" value="${esc(existing?.title||existing?.name||"")}" placeholder="例如：告別式、家屬會面、接體"></div>
+ <div class="field full"><label>客戶／亡者</label><input id="scheduleCustomer" value="${esc(existing?.customer||existing?.deceasedName||"")}" placeholder="可填亡者姓名或家屬姓名"></div>
+ <div class="field full"><label>備註</label><textarea id="scheduleNote" rows="4" placeholder="輸入行程詳細內容">${esc(existing?.note||"")}</textarea></div></div>
+ <div class="form-actions"><button id="cancelSchedule">取消</button>${existing?'<button id="deleteSchedule" class="danger">刪除</button>':''}<button id="saveSchedule" class="primary">儲存</button></div>`);
+ document.getElementById("cancelSchedule").onclick=closeModal;
+ document.getElementById("saveSchedule").onclick=()=>{const date=document.getElementById("scheduleDate").value,time=document.getElementById("scheduleTime").value||"09:00",title=document.getElementById("scheduleTitle").value.trim(),customer=document.getElementById("scheduleCustomer").value.trim(),note=document.getElementById("scheduleNote").value.trim();if(!date)return alert("請選擇日期");if(!title)return alert("請輸入行程／事項");if(existing){existing.date=date;existing.time=time;existing.title=title;existing.customer=customer;existing.note=note}else data.schedules.push({id:uid(),date,time,title,customer,note});selectedScheduleDate=date;const [yy,mm]=date.split("-").map(Number);calendarViewDate=new Date(yy,mm-1,1);saveData();closeModal();renderSchedule()};
+ if(existing)document.getElementById("deleteSchedule").onclick=()=>{if(confirm(`確定刪除「${existing.title||existing.name||"這筆行程"}」嗎？`)){data.schedules=data.schedules.filter(x=>x.id!==existing.id);saveData();closeModal();renderSchedule()}};
+}
+window.__editSchedule=id=>openSchedule(id);
+
+function renderStaff(){
+ document.getElementById("staffRows").innerHTML=data.staff.map(x=>`<tr onclick="window.__editStaff('${x.id}')" style="cursor:pointer" title="點選即可修改員工資料與密碼"><td>${esc(x.name)}</td><td>${esc(x.account)}</td><td>${esc(x.role)}</td><td>${x.active===false?"停用":"啟用"}</td></tr>`).join("");
+}
+window.__editStaff=function(id){
+ const s=data.staff.find(x=>x.id===id);
+ if(!s)return;
+ const roles=["負責人","主管","禮儀師","會計","一般員工"];
+ openModal("修改員工資料",`
+  <div class="hint">點選員工後可直接修改姓名、帳號、角色、啟用狀態及密碼。密碼不會在員工清單中顯示。</div>
+  <div class="form-grid">
+   <div class="field"><label>姓名</label><input id="editStaffName" value="${esc(s.name)}"></div>
+   <div class="field"><label>帳號</label><input id="editStaffAccount" value="${esc(s.account)}" autocomplete="username"></div>
+   <div class="field"><label>角色</label><select id="editStaffRole">${roles.map(r=>`<option value="${esc(r)}" ${s.role===r?"selected":""}>${esc(r)}</option>`).join("")}</select></div>
+   <div class="field"><label>帳號狀態</label><select id="editStaffActive"><option value="true" ${s.active!==false?"selected":""}>啟用</option><option value="false" ${s.active===false?"selected":""}>停用</option></select></div>
+   <div class="field full"><label>新密碼（不修改請留空）</label><input id="editStaffPassword" type="password" autocomplete="new-password" placeholder="留空表示維持原密碼"></div>
+   <div class="field full"><label>確認新密碼</label><input id="editStaffPassword2" type="password" autocomplete="new-password" placeholder="若修改密碼請再次輸入"></div>
+  </div>
+  <div class="form-actions"><button id="cancelEditStaff">取消</button><button id="saveEditStaff" class="primary">儲存修改</button></div>`);
+ document.getElementById("cancelEditStaff").onclick=closeModal;
+ document.getElementById("saveEditStaff").onclick=()=>{
+  const n=document.getElementById("editStaffName").value.trim();
+  const a=document.getElementById("editStaffAccount").value.trim();
+  const role=document.getElementById("editStaffRole").value;
+  const active=document.getElementById("editStaffActive").value==="true";
+  const pw=document.getElementById("editStaffPassword").value;
+  const pw2=document.getElementById("editStaffPassword2").value;
+  if(!n)return alert("請輸入員工姓名");
+  if(!a)return alert("請輸入員工帳號");
+  const duplicate=data.staff.some(x=>x.id!==s.id&&x.account.toLowerCase()===a.toLowerCase());
+  if(duplicate)return alert("這個帳號已經存在，請換一個帳號");
+  if(pw&&pw.length<6)return alert("新密碼至少需要 6 碼");
+  if(pw!==pw2)return alert("兩次輸入的新密碼不一致");
+  if(s.id==="owner"&&!active)return alert("負責人帳號不能停用");
+  s.name=n;s.account=a;s.role=role;s.active=active;if(pw)s.password=pw;
+  saveData();closeModal();alert("員工資料已更新");
+ };
+};
+window.__editCase=id=>openCase(id);
+window.__newCaseForCustomer=id=>openCase("",id);
+window.__deleteCase=id=>{if(confirm("確定刪除這筆案件嗎？")){data.cases=data.cases.filter(x=>x.id!==id);saveData()}};
+
+function exportCSV(){
+ const rows=[[
+  "案件編號","亡者姓名","性別","出生日期類別","出生日期（民國）","死亡日期類別","死亡日期（民國）",
+  "家屬代表人","代表人民國年","跟亡者的關係","代表人電話","代表人住址",
+  "代表人備註","案件日期","案件狀態","案件備註"
+ ]];
+ data.cases.forEach(x=>{
+  const c=data.customers.find(y=>y.id===x.customerId)||{};
+  rows.push([
+   x.caseNo||"",
+   x.deceasedName||x.name||c.deceasedName||c.name||"",
+   x.gender||c.gender||"",
+   x.birthCalendar||c.birthCalendar||"國曆",
+   x.birthDate||c.birthDate||"",
+   x.deathCalendar||"國曆",
+   x.deathDate||"",
+   x.familyName||x.family||"",
+   x.familyRocYear||"",
+   x.familyRelation||"",
+   x.familyPhone||c.phone||"",
+   x.familyAddress||c.address||"",
+   x.familyNote||c.note||"",
+   x.date||"",
+   x.status||"",
+   x.note||""
+  ]);
+ });
+ const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+ download("瑞賢禮儀社_全部客戶資料.csv",csv,"text/csv;charset=utf-8");
+}
+
+
+function openModal(title,body){document.getElementById("modalTitle").textContent=title;document.getElementById("modalBody").innerHTML=body;document.getElementById("modal").classList.remove("hidden")}
+function closeModal(){document.getElementById("modal").classList.add("hidden")}
+document.getElementById("modalClose").onclick=closeModal;
+
+document.getElementById("changeOwnerBtn").onclick=()=>{
+ const o=owner();
+ openModal("修改負責人帳號／密碼",`
+  <div class="field"><label>新帳號</label><input id="newOwnerAccount" value="${esc(o.account)}"></div>
+  <div class="field"><label>目前密碼</label><input id="currentOwnerPassword" type="password"></div>
+  <div class="field"><label>新密碼</label><input id="newOwnerPassword" type="password"></div>
+  <div class="field"><label>確認新密碼</label><input id="newOwnerPassword2" type="password"></div>
+  <div class="form-actions"><button id="cancelOwner">取消</button><button id="saveOwner" class="primary">儲存</button></div>`);
+ document.getElementById("cancelOwner").onclick=closeModal;
+ document.getElementById("saveOwner").onclick=()=>{
+  const a=document.getElementById("newOwnerAccount").value.trim(),cur=document.getElementById("currentOwnerPassword").value,n=document.getElementById("newOwnerPassword").value,n2=document.getElementById("newOwnerPassword2").value;
+  if(cur!==o.password){alert("目前密碼錯誤");return}
+  if(!a||n.length<6||n!==n2){alert("請確認帳號及新密碼（至少6碼且兩次一致）");return}
+  localStorage.setItem(OWNER_KEY,JSON.stringify({account:a,password:n}));
+  const s=data.staff.find(x=>x.id==="owner");if(s){s.account=a;s.password=n}
+  saveData();closeModal();alert("負責人帳號與密碼已更新");
+ };
+};
+
+document.getElementById("newStaffBtn").onclick=()=>{
+ openModal("新增員工",`
+  <div class="hint">請填寫員工基本資料。密碼至少 6 碼；新增後可直接點選下方員工資料再次修改。</div>
+  <div class="form-grid">
+   <div class="field"><label>姓名</label><input id="staffName" placeholder="請輸入員工姓名" autocomplete="name"></div>
+   <div class="field"><label>帳號</label><input id="staffAccount" placeholder="例如：staff01 或 email" autocomplete="username"></div>
+   <div class="field"><label>密碼</label><input id="staffPassword" type="password" placeholder="至少 6 碼" autocomplete="new-password"></div>
+   <div class="field"><label>確認密碼</label><input id="staffPassword2" type="password" placeholder="再次輸入密碼" autocomplete="new-password"></div>
+   <div class="field full"><label>角色</label><select id="staffRole"><option value="一般員工">一般員工</option><option value="禮儀師">禮儀師</option><option value="會計">會計</option><option value="主管">主管</option><option value="負責人">負責人</option></select></div>
+  </div>
+  <div class="form-actions"><button id="cancelStaff">取消</button><button id="saveStaff" class="primary">新增員工</button></div>`);
+ document.getElementById("cancelStaff").onclick=closeModal;
+ document.getElementById("saveStaff").onclick=()=>{
+  const n=document.getElementById("staffName").value.trim();
+  const a=document.getElementById("staffAccount").value.trim();
+  const p=document.getElementById("staffPassword").value;
+  const p2=document.getElementById("staffPassword2").value;
+  const role=document.getElementById("staffRole").value;
+  if(!n)return alert("請輸入員工姓名");
+  if(!a)return alert("請輸入員工帳號");
+  if(!p)return alert("請輸入員工密碼");
+  if(p.length<6)return alert("密碼至少需要 6 碼");
+  if(p!==p2)return alert("兩次輸入的密碼不一致");
+  if(data.staff.some(x=>x.account.toLowerCase()===a.toLowerCase()))return alert("這個帳號已經存在，請換一個帳號");
+  data.staff.push({id:uid(),name:n,account:a,password:p,role,active:true});
+  saveData();closeModal();switchTab("staff");alert("員工已新增完成。點選下方員工資料即可修改內容或密碼。");
+ };
+};
+
+document.getElementById("restoreFile").onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=()=>{
+  try{
+   const x=JSON.parse(r.result);
+   if(!Array.isArray(x.customers)||!Array.isArray(x.cases))throw new Error();
+   data={...clone(DEFAULT),...x};saveData();alert("完整備份已匯入");
+  }catch(err){alert("備份檔案格式不正確")}
+ };
+ r.readAsText(f);
+};
+
+if(localStorage.getItem(SESSION_KEY))showApp();
+})();
+</script>
+</body>
+</html>
