@@ -88,9 +88,9 @@
     </section>
 
     <section id="schedule" class="page hidden">
-      <div class="page-header"><div><h2>行事曆</h2><p id="calendarTitle">本月行程</p></div></div>
+      <div class="page-header"><div><h2>行事曆</h2><p id="calendarTitle">本月行程</p></div><button id="newScheduleBtn" class="primary">＋ 新增行程</button></div>
       <div class="card" id="calendarBox"></div>
-      <div class="card"><div class="section-head"><h3>今日行程</h3></div><div id="scheduleList"></div></div>
+      <div class="card"><div class="section-head"><h3 id="selectedDateTitle">今日行程</h3><button id="addSelectedScheduleBtn">＋ 新增</button></div><div id="scheduleList"></div></div>
     </section>
 
     <section id="staff" class="page hidden">
@@ -194,7 +194,7 @@ document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("c
 document.getElementById("fabNewCase").onclick=()=>openCase();
 document.getElementById("quickCustomers").onclick=()=>switchTab("customers");
 document.getElementById("quickCases").onclick=()=>switchTab("cases");
-document.getElementById("quickSchedule").onclick=()=>switchTab("schedule");
+document.getElementById("quickSchedule").onclick=()=>switchTab("schedule"); document.getElementById("newScheduleBtn").onclick=()=>openSchedule(); document.getElementById("addSelectedScheduleBtn").onclick=()=>openSchedule();
 document.getElementById("quickPayment").onclick=()=>switchTab("backup");
 document.getElementById("quickSearch").onclick=()=>{switchTab("cases");setTimeout(()=>document.getElementById("caseSearch").focus(),80)};
 document.getElementById("quickMore").onclick=()=>switchTab("staff");
@@ -508,18 +508,45 @@ function renderCustomers(){
  }).join("")||"<tr><td colspan='6'>目前沒有客戶。</td></tr>";
 }
 
+let calendarViewDate=new Date();
+let selectedScheduleDate=today();
+function pad2(n){return String(n).padStart(2,"0")}
+function dateKey(y,m,d){return `${y}-${pad2(m+1)}-${pad2(d)}`}
+function formatScheduleDate(key){const [y,m,d]=String(key).split("-").map(Number);return y&&m&&d?`${y}年${m}月${d}日`:key}
 function renderSchedule(){
- const box=document.getElementById("calendarBox"),list=document.getElementById("scheduleList");
- if(!box||!list)return;
- const now=new Date(),y=now.getFullYear(),m=now.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),labels=["日","一","二","三","四","五","六"];
+ const box=document.getElementById("calendarBox"),list=document.getElementById("scheduleList"); if(!box||!list)return;
+ const y=calendarViewDate.getFullYear(),m=calendarViewDate.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),labels=["日","一","二","三","四","五","六"];
  document.getElementById("calendarTitle").textContent=`${y}年${m+1}月`;
- let h='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;font-size:12px;color:#7f8d99">'+labels.map(x=>`<div style="padding:5px;font-weight:700">${x}</div>`).join("");
+ let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><button onclick="window.__calendarPrev()">‹ 上個月</button><b>${y}年${m+1}月</b><button onclick="window.__calendarNext()">下個月 ›</button></div>`;
+ h+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:12px;color:#7f8d99">'+labels.map(x=>`<div style="padding:5px;font-weight:700">${x}</div>`).join("");
  for(let i=0;i<first;i++)h+='<div></div>';
- for(let d=1;d<=days;d++){const active=d===now.getDate();h+=`<div style="padding:8px 0;border-radius:50%;${active?'background:#1677c8;color:#fff;font-weight:800':''}">${d}</div>`}
+ for(let d=1;d<=days;d++){
+  const key=dateKey(y,m,d),count=data.schedules.filter(x=>x.date===key).length,isSelected=key===selectedScheduleDate,isToday=key===today();
+  const bg=isSelected?'#1677c8':(isToday?'#eaf5ff':'#fff'),color=isSelected?'#fff':'#263442';
+  h+=`<button onclick="window.__selectScheduleDate('${key}')" style="min-height:52px;padding:5px 2px;border:1px solid ${isSelected?'#1677c8':'#edf2f6'};border-radius:10px;background:${bg};color:${color};font-weight:${isSelected||isToday?'800':'500'}">${d}${count?`<span style="display:block;font-size:10px;margin-top:2px;opacity:.9">● ${count}</span>`:'<span style="display:block;height:12px"></span>'}</button>`;
+ }
  h+='</div>';box.innerHTML=h;
- const todayList=data.schedules.filter(x=>!x.date||x.date===today()).sort((a,b)=>String(a.time||a.startTime||"").localeCompare(String(b.time||b.startTime||"")));
- list.innerHTML=todayList.map(x=>`<div class="schedule-item"><span class="time">${esc(x.time||x.startTime||"09:00")}</span><div><b>${esc(x.title||x.name||"行程")}</b><small>${esc(x.customer||x.deceasedName||"")}</small></div><span style="width:8px;height:8px;border-radius:50%;background:#1677c8"></span></div>`).join("")||'<div style="padding:15px 0;text-align:center;color:#8a98a4">今天尚無排定行程</div>';
+ const chosen=selectedScheduleDate,items=data.schedules.filter(x=>x.date===chosen).sort((a,b)=>String(a.time||a.startTime||"").localeCompare(String(b.time||b.startTime||"")));
+ document.getElementById("selectedDateTitle").textContent=`${formatScheduleDate(chosen)} 行程`;
+ list.innerHTML=items.map(x=>`<div class="schedule-item" style="grid-template-columns:55px 1fr auto;cursor:pointer" onclick="window.__editSchedule('${x.id}')" title="點選修改"><span class="time">${esc(x.time||x.startTime||"09:00")}</span><div><b>${esc(x.title||x.name||"行程")}</b><small>${esc(x.customer||x.deceasedName||x.note||"")}</small></div><span style="color:#1677c8;font-size:12px">編輯</span></div>`).join("")||'<div style="padding:15px 0;text-align:center;color:#8a98a4">這一天尚無排定行程</div>';
 }
+window.__selectScheduleDate=function(key){selectedScheduleDate=key;const [y,m]=key.split("-").map(Number);calendarViewDate=new Date(y,m-1,1);renderSchedule()};
+window.__calendarPrev=function(){calendarViewDate=new Date(calendarViewDate.getFullYear(),calendarViewDate.getMonth()-1,1);renderSchedule()};
+window.__calendarNext=function(){calendarViewDate=new Date(calendarViewDate.getFullYear(),calendarViewDate.getMonth()+1,1);renderSchedule()};
+function openSchedule(id){
+ const existing=id?data.schedules.find(x=>x.id===id):null,d=existing?.date||selectedScheduleDate||today();
+ openModal(existing?"修改行程":"新增行程",`<div class="hint">選擇日期後可以新增行程；點選既有行程即可修改或刪除。</div><div class="form-grid">
+ <div class="field"><label>日期</label><input id="scheduleDate" type="date" value="${esc(d)}"></div>
+ <div class="field"><label>時間</label><input id="scheduleTime" type="time" value="${esc(existing?.time||existing?.startTime||"09:00")}"></div>
+ <div class="field full"><label>行程／事項</label><input id="scheduleTitle" value="${esc(existing?.title||existing?.name||"")}" placeholder="例如：告別式、家屬會面、接體"></div>
+ <div class="field full"><label>客戶／亡者</label><input id="scheduleCustomer" value="${esc(existing?.customer||existing?.deceasedName||"")}" placeholder="可填亡者姓名或家屬姓名"></div>
+ <div class="field full"><label>備註</label><textarea id="scheduleNote" rows="4" placeholder="輸入行程詳細內容">${esc(existing?.note||"")}</textarea></div></div>
+ <div class="form-actions"><button id="cancelSchedule">取消</button>${existing?'<button id="deleteSchedule" class="danger">刪除</button>':''}<button id="saveSchedule" class="primary">儲存</button></div>`);
+ document.getElementById("cancelSchedule").onclick=closeModal;
+ document.getElementById("saveSchedule").onclick=()=>{const date=document.getElementById("scheduleDate").value,time=document.getElementById("scheduleTime").value||"09:00",title=document.getElementById("scheduleTitle").value.trim(),customer=document.getElementById("scheduleCustomer").value.trim(),note=document.getElementById("scheduleNote").value.trim();if(!date)return alert("請選擇日期");if(!title)return alert("請輸入行程／事項");if(existing){existing.date=date;existing.time=time;existing.title=title;existing.customer=customer;existing.note=note}else data.schedules.push({id:uid(),date,time,title,customer,note});selectedScheduleDate=date;const [yy,mm]=date.split("-").map(Number);calendarViewDate=new Date(yy,mm-1,1);saveData();closeModal();renderSchedule()};
+ if(existing)document.getElementById("deleteSchedule").onclick=()=>{if(confirm(`確定刪除「${existing.title||existing.name||"這筆行程"}」嗎？`)){data.schedules=data.schedules.filter(x=>x.id!==existing.id);saveData();closeModal();renderSchedule()}};
+}
+window.__editSchedule=id=>openSchedule(id);
 
 function renderStaff(){
  document.getElementById("staffRows").innerHTML=data.staff.map(x=>`<tr onclick="window.__editStaff('${x.id}')" style="cursor:pointer" title="點選即可修改員工資料與密碼"><td>${esc(x.name)}</td><td>${esc(x.account)}</td><td>${esc(x.role)}</td><td>${x.active===false?"停用":"啟用"}</td></tr>`).join("");
