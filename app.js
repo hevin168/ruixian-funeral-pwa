@@ -1,7 +1,4 @@
-/* 瑞賢禮儀社 PWA - Supabase 登入相容修正版
-   目的：與目前 index.html 的 loginAccount / loginPassword / appView 完全對應。
-   不在 localStorage 儲存密碼。
-*/
+/* 瑞賢禮儀社 PWA - 完整修正版 app.js */
 "use strict";
 
 const SUPABASE_URL = "https://zjetemcqysvpbnyvpyma.supabase.co";
@@ -11,10 +8,7 @@ const $ = (id) => document.getElementById(id);
 
 function show(id, visible) {
   const el = $(id);
-  if (!el) return;
-  el.hidden = !visible;
-  el.classList.toggle("hidden", !visible);
-  el.style.display = visible ? "" : "none";
+  if (el) el.hidden = !visible;
 }
 
 function setStatus(id, message, error = false) {
@@ -31,966 +25,283 @@ function friendlyError(error) {
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[c]));
 }
 
-let supabase = null;
+if (!window.supabase || !window.supabase.createClient) {
+  setStatus("loginStatus", "系統初始化失敗：Supabase 尚未載入，請重新整理頁面。", true);
+  throw new Error("Supabase SDK 未載入");
+}
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+});
+
 let currentUser = null;
 let currentProfile = null;
+let customers = [], cases = [], payments = [], expenses = [], schedules = [];
 let loginInProgress = false;
 let enteringApp = false;
 
-let customers = [];
-let cases = [];
-let payments = [];
-let expenses = [];
-let schedules = [];
-
 function roleText(role) {
-  return ({
-    owner: "負責人",
-    manager: "主管",
-    counselor: "禮儀師",
-    accounting: "會計",
-    staff: "一般員工"
-  })[role] || role || "員工";
-}
-
-/* 即使 index.html 尚未載入 Supabase SDK，也自動載入，不必修改 HTML */
-function loadSupabaseSDK() {
-  return new Promise((resolve, reject) => {
-    if (window.supabase?.createClient) return resolve();
-
-    const old = document.querySelector('script[data-ruixian-supabase]');
-    if (old) {
-      old.addEventListener("load", () => resolve(), { once: true });
-      old.addEventListener("error", () => reject(new Error("Supabase SDK 載入失敗。")), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-    script.async = true;
-    script.dataset.ruixianSupabase = "1";
-
-    script.onload = () => window.supabase?.createClient
-      ? resolve()
-      : reject(new Error("Supabase SDK 載入後仍無法使用。"));
-
-    script.onerror = () => reject(
-      new Error("Supabase SDK 載入失敗，請確認網路連線。")
-    );
-
-    document.head.appendChild(script);
-  });
-}
-
-async function initSupabase() {
-  await loadSupabaseSDK();
-
-  supabase = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY,
-    {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    }
-  );
+  return ({ owner: "負責人", manager: "主管", counselor: "禮儀師", accounting: "會計", staff: "一般員工" })[role] || role || "員工";
 }
 
 async function loadProfile(userId) {
-  const { data, error } = await supabase
-    .from("staff_profiles")
+  const { data, error } = await supabase.from("staff_profiles")
     .select("user_id,name,email,role,active,created_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error("員工資料讀取失敗：" + friendlyError(error));
-  }
-
-  if (!data) {
-    throw new Error("登入成功，但找不到對應的員工資料。");
-  }
-
-  if (!data.active) {
-    throw new Error("這個員工帳號目前已停用。");
-  }
-
+    .eq("user_id", userId).maybeSingle();
+  if (error) throw new Error("員工資料讀取失敗：" + friendlyError(error));
+  if (!data) throw new Error("登入成功，但找不到對應的員工資料。請確認 staff_profiles 已建立此帳號。");
+  if (!data.active) throw new Error("這個員工帳號目前已停用。");
   return data;
 }
 
 async function enterApp(session) {
   if (enteringApp) return;
-
-  if (!session?.user) {
-    throw new Error("沒有取得有效的登入 Session。");
-  }
-
+  if (!session?.user) throw new Error("沒有取得有效的登入工作階段。");
   enteringApp = true;
-
   try {
     currentUser = session.user;
     currentProfile = await loadProfile(currentUser.id);
-
     const userInfo = $("userInfo");
-
-    if (userInfo) {
-      userInfo.textContent =
-        `${currentProfile.name || ""}｜${roleText(currentProfile.role)}`;
-    }
-
-    /* 目前 HTML 的真正主畫面 ID 是 appView，不是 mainView */
+    if (userInfo) userInfo.textContent = `${currentProfile.name}｜${roleText(currentProfile.role)}｜${currentProfile.email}`;
     show("loginView", false);
-    show("appView", true);
-
+    show("mainView", true);
     setStatus("loginStatus", "");
-
-    try {
-      await refreshAll();
-    } catch (error) {
-      console.error("雲端資料載入失敗：", error);
-
-      setStatus(
-        "dashboardStatus",
-        "登入成功，但部分雲端資料無法讀取：" +
-        friendlyError(error),
-        true
-      );
+    try { await refreshAll(); }
+    catch (error) {
+      console.error("資料載入失敗：", error);
+      setStatus("dashboardStatus", "登入成功，但部分雲端資料無法讀取：" + friendlyError(error), true);
     }
-
     switchTab("dashboard");
-
   } catch (error) {
     console.error("進入系統失敗：", error);
-
-    currentUser = null;
-    currentProfile = null;
-
-    show("appView", false);
-    show("loginView", true);
-
-    setStatus(
-      "loginStatus",
-      "登入失敗：" + friendlyError(error),
-      true
-    );
-
-  } finally {
-    enteringApp = false;
-  }
+    currentUser = null; currentProfile = null;
+    show("mainView", false); show("loginView", true);
+    setStatus("loginStatus", "登入失敗：" + friendlyError(error), true);
+  } finally { enteringApp = false; }
 }
 
 async function refreshAll() {
-  const queries = [
-    [
-      "customers",
-      supabase
-        .from("customers")
-        .select("*")
-        .order("created_at", { ascending:false })
-    ],
-    [
-      "funeral_cases",
-      supabase
-        .from("funeral_cases")
-        .select("*")
-        .order("created_at", { ascending:false })
-    ],
-    [
-      "payments",
-      supabase
-        .from("payments")
-        .select("*")
-        .order("payment_date", { ascending:false })
-    ],
-    [
-      "expenses",
-      supabase
-        .from("expenses")
-        .select("*")
-        .order("expense_date", { ascending:false })
-    ],
-    [
-      "schedules",
-      supabase
-        .from("schedules")
-        .select("*")
-        .order("start_at", { ascending:true })
-    ]
-  ];
-
-  const results = await Promise.all(
-    queries.map(x => x[1])
-  );
-
-  results.forEach((result, i) => {
-    if (result.error) {
-      throw new Error(
-        `${queries[i][0]} 讀取失敗：${friendlyError(result.error)}`
-      );
-    }
-  });
-
-  customers = results[0].data || [];
-  cases = results[1].data || [];
-  payments = results[2].data || [];
-  expenses = results[3].data || [];
-  schedules = results[4].data || [];
-
+  const results = await Promise.all([
+    supabase.from("customers").select("*").order("created_at", { ascending: false }),
+    supabase.from("funeral_cases").select("*").order("created_at", { ascending: false }),
+    supabase.from("payments").select("*").order("payment_date", { ascending: false }),
+    supabase.from("expenses").select("*").order("expense_date", { ascending: false }),
+    supabase.from("schedules").select("*").order("start_at", { ascending: true })
+  ]);
+  const names = ["customers", "funeral_cases", "payments", "expenses", "schedules"];
+  for (let i = 0; i < results.length; i++) if (results[i].error) throw new Error(`${names[i]} 讀取失敗：${friendlyError(results[i].error)}`);
+  customers = results[0].data || []; cases = results[1].data || []; payments = results[2].data || []; expenses = results[3].data || []; schedules = results[4].data || [];
   render();
 }
 
 function render() {
-  if ($("customerCount")) {
-    $("customerCount").textContent = customers.length;
-  }
+  if ($("customerCount")) $("customerCount").textContent = customers.length;
+  if ($("caseCount")) $("caseCount").textContent = cases.length;
+  if ($("pendingFinanceCount")) $("pendingFinanceCount").textContent = payments.filter(x => x.status === "pending").length + expenses.filter(x => x.status === "pending").length;
 
-  if ($("caseCount")) {
-    $("caseCount").textContent = cases.length;
-  }
-
-  if ($("pendingFinanceCount")) {
-    $("pendingFinanceCount").textContent =
-      payments.filter(x => x.status === "pending").length +
-      expenses.filter(x => x.status === "pending").length;
-  }
-
-  if ($("customerList")) {
-    $("customerList").innerHTML =
-      customers.map(x => `
-        <div class="item">
-          <div class="item-title">${esc(x.name)}</div>
-          <div class="item-meta">
-            電話：${esc(x.phone)}<br>
-            地址：${esc(x.address)}<br>
-            關係：${esc(x.relation)}<br>
-            備註：${esc(x.notes)}
-          </div>
-        </div>
-      `).join("") ||
-      '<div class="item muted">目前沒有客戶資料</div>';
-  }
-
+  if ($("customerList")) $("customerList").innerHTML = customers.map(x => `<div class="item"><div class="item-title">${esc(x.name)}</div><div class="item-meta">電話：${esc(x.phone)}<br>地址：${esc(x.address)}<br>關係：${esc(x.relation)}<br>備註：${esc(x.notes)}</div></div>`).join("") || '<div class="item muted">目前沒有客戶資料</div>';
   if ($("caseList")) {
-    $("caseList").innerHTML =
-      cases.map(x => `
-        <div class="item">
-          <div class="item-title">
-            ${esc(x.case_number)}｜${esc(x.deceased_name)}
-          </div>
-          <div class="item-meta">
-            狀態：${esc(x.status)}<br>
-            契約金額：
-            ${Number(x.contract_amount || 0).toLocaleString()} 元<br>
-            備註：${esc(x.notes)}
-          </div>
-        </div>
-      `).join("") ||
-      '<div class="item muted">目前沒有案件資料</div>';
+    $("caseList").innerHTML = cases.map(x => `<div class="item case-item" data-case-id="${esc(x.id)}" style="cursor:pointer"><div class="item-title">${esc(x.case_number)}｜${esc(x.deceased_name)}</div><div class="item-meta">案件日期：${esc(x.case_date || "")}<br>狀態：${esc(x.status)}<br>性別：${esc(x.deceased_gender || "")}<br>出生：${esc(x.birth_calendar || "")} ${x.birth_roc_year ? `民國 ${esc(x.birth_roc_year)} 年` : ""}${x.birth_month ? `${esc(x.birth_month)} 月` : ""}${x.birth_day ? `${esc(x.birth_day)} 日` : ""}<br>死亡：${esc(x.death_calendar || "")} ${x.death_roc_year ? `民國 ${esc(x.death_roc_year)} 年` : ""}${x.death_month ? `${esc(x.death_month)} 月` : ""}${x.death_day ? `${esc(x.death_day)} 日` : ""}<br>契約金額：${Number(x.contract_amount || 0).toLocaleString()} 元<br>備註：${esc(x.notes)}</div><div style="margin-top:8px;font-size:13px;color:#2563eb">點擊查看／編輯案件</div></div>`).join("") || '<div class="item muted">目前沒有案件資料</div>';
+    document.querySelectorAll(".case-item").forEach(item => item.addEventListener("click", () => openCaseEditor(item.dataset.caseId)));
   }
-
-  if ($("paymentList")) {
-    $("paymentList").innerHTML =
-      payments.map(x => `
-        <div class="item">
-          <div class="item-title">
-            付款 ${Number(x.amount || 0).toLocaleString()} 元
-          </div>
-          <div class="item-meta">
-            日期：${esc(x.payment_date)}
-            ｜狀態：${esc(x.status)}<br>
-            ${esc(x.description)}
-          </div>
-        </div>
-      `).join("") ||
-      '<div class="item muted">目前沒有付款</div>';
-  }
-
-  if ($("expenseList")) {
-    $("expenseList").innerHTML =
-      expenses.map(x => `
-        <div class="item">
-          <div class="item-title">
-            支出 ${Number(x.amount || 0).toLocaleString()} 元
-          </div>
-          <div class="item-meta">
-            日期：${esc(x.expense_date)}
-            ｜狀態：${esc(x.status)}<br>
-            ${esc(x.description)}
-          </div>
-        </div>
-      `).join("") ||
-      '<div class="item muted">目前沒有支出</div>';
-  }
-
-  if ($("scheduleList")) {
-    $("scheduleList").innerHTML =
-      schedules.map(x => `
-        <div class="item">
-          <div class="item-title">${esc(x.title)}</div>
-          <div class="item-meta">
-            ${esc(x.start_at)}｜${esc(x.location)}<br>
-            ${esc(x.notes)}
-          </div>
-        </div>
-      `).join("") ||
-      '<div class="item muted">目前沒有行程</div>';
-  }
+  if ($("paymentList")) $("paymentList").innerHTML = payments.map(x => `<div class="item"><div class="item-title">付款 ${Number(x.amount || 0).toLocaleString()} 元</div><div class="item-meta">日期：${esc(x.payment_date)}｜狀態：${esc(x.status)}<br>${esc(x.description)}</div></div>`).join("") || '<div class="item muted">目前沒有付款</div>';
+  if ($("expenseList")) $("expenseList").innerHTML = expenses.map(x => `<div class="item"><div class="item-title">支出 ${Number(x.amount || 0).toLocaleString()} 元</div><div class="item-meta">日期：${esc(x.expense_date)}｜狀態：${esc(x.status)}<br>${esc(x.description)}</div></div>`).join("") || '<div class="item muted">目前沒有支出</div>';
+  if ($("scheduleList")) $("scheduleList").innerHTML = schedules.map(x => `<div class="item"><div class="item-title">${esc(x.title)}</div><div class="item-meta">${esc(x.start_at)}｜${esc(x.location)}<br>${esc(x.notes)}</div></div>`).join("") || '<div class="item muted">目前沒有行程</div>';
 }
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab").forEach(button => button.classList.toggle("active", button.dataset.tab === tab));
+  ["dashboard", "customers", "cases", "finance", "schedules", "staff"].forEach(id => show(id, id === tab));
+  if (tab === "staff") loadStaff();
+}
+
+async function loadStaff() {
+  if (!currentProfile || !["owner", "manager"].includes(currentProfile.role)) {
+    if ($("staffList")) $("staffList").innerHTML = '<div class="item">目前帳號沒有查看員工名單的權限。</div>';
+    return;
+  }
+  const { data, error } = await supabase.from("staff_profiles").select("name,email,role,active,created_at").order("created_at", { ascending: false });
+  if (error) { if ($("staffList")) $("staffList").innerHTML = `<div class="item danger">${esc(friendlyError(error))}</div>`; return; }
+  if ($("staffList")) $("staffList").innerHTML = (data || []).map(x => `<div class="item"><div class="item-title">${esc(x.name)}｜${esc(roleText(x.role))}</div><div class="item-meta">${esc(x.email)}｜${x.active ? "啟用" : "停用"}</div></div>`).join("") || '<div class="item muted">目前沒有員工資料</div>';
+}
+
 async function handleLogin() {
   if (loginInProgress) return;
-
-  const accountInput = $("loginAccount");
-  const passwordInput = $("loginPassword");
-  const loginBtn = $("loginBtn");
-
-  const account = accountInput?.value.trim() || "";
-  const password = passwordInput?.value || "";
-
-  if (!account) {
-    setStatus("loginStatus", "請輸入帳號。", true);
-    accountInput?.focus();
-    return;
-  }
-
-  if (!password) {
-    setStatus("loginStatus", "請輸入密碼。", true);
-    passwordInput?.focus();
-    return;
-  }
-
+  const email = $("email")?.value.trim() || "";
+  const password = $("password")?.value || "";
+  setStatus("loginStatus", "");
+  if (!email) return setStatus("loginStatus", "請輸入電子郵件。", true);
+  if (!password) return setStatus("loginStatus", "請輸入密碼。", true);
   loginInProgress = true;
-
-  if (loginBtn) {
-    loginBtn.disabled = true;
-    loginBtn.textContent = "登入中…";
-  }
-
-  setStatus("loginStatus", "正在登入，請稍候…");
-
+  const button = $("loginBtn");
+  if (button) { button.disabled = true; button.textContent = "登入中…"; }
+  setStatus("loginStatus", "正在連線驗證帳號…");
   try {
-    /*
-      Supabase Auth 使用 Email + Password。
-      因此「帳號」欄位目前直接接受 Email。
-    */
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: account,
-      password
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    if (!data?.session || !data?.user) {
-      throw new Error("登入成功，但沒有取得有效的登入 Session。");
-    }
-
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    if (!data?.session) throw new Error("帳號驗證成功，但沒有取得登入 Session。");
+    setStatus("loginStatus", "帳號驗證成功，正在進入系統…");
     await enterApp(data.session);
-
-    if (passwordInput) {
-      passwordInput.value = "";
-    }
-
   } catch (error) {
     console.error("登入錯誤：", error);
-
-    show("appView", false);
-    show("loginView", true);
-
-    setStatus(
-      "loginStatus",
-      "登入失敗：" + friendlyError(error),
-      true
-    );
-
+    setStatus("loginStatus", "登入失敗：" + friendlyError(error), true);
   } finally {
     loginInProgress = false;
-
-    if (loginBtn) {
-      loginBtn.disabled = false;
-      loginBtn.textContent = "登入";
-    }
+    if (button) { button.disabled = false; button.textContent = "登入"; }
   }
 }
-
 
 async function handleLogout() {
-  try {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-  } catch (error) {
-    console.error("登出錯誤：", error);
-  }
-
-  currentUser = null;
-  currentProfile = null;
-
-  customers = [];
-  cases = [];
-  payments = [];
-  expenses = [];
-  schedules = [];
-
-  show("appView", false);
-  show("loginView", true);
-
-  setStatus("loginStatus", "");
-
-  const accountInput = $("loginAccount");
-  const passwordInput = $("loginPassword");
-
-  if (accountInput) accountInput.value = "";
-  if (passwordInput) passwordInput.value = "";
-
-  accountInput?.focus();
+  try { await supabase.auth.signOut(); } catch (error) { console.error("登出失敗：", error); }
+  currentUser = null; currentProfile = null; show("mainView", false); show("loginView", true);
 }
-
-
-function switchTab(tabName) {
-  /*
-    目前 index.html 使用：
-    <button data-tab="dashboard">
-    而不是舊版的 .tab。
-  */
-
-  document.querySelectorAll("[data-tab]").forEach(button => {
-    button.classList.toggle(
-      "active",
-      button.dataset.tab === tabName
-    );
-  });
-
-  document.querySelectorAll(
-    "[data-panel], .tab-panel, .panel[data-section]"
-  ).forEach(panel => {
-    const panelName =
-      panel.dataset.panel ||
-      panel.dataset.section ||
-      panel.id;
-
-    if (!panelName) return;
-
-    const normalized = panelName
-      .replace(/Panel$/i, "")
-      .replace(/^panel-/i, "");
-
-    panel.style.display =
-      normalized === tabName ? "" : "none";
-  });
-
-  /*
-    相容目前 HTML 常見的區塊 ID。
-  */
-  const possiblePanels = {
-    dashboard: [
-      "dashboardView",
-      "dashboardPanel",
-      "dashboard"
-    ],
-    cases: [
-      "casesView",
-      "casesPanel",
-      "cases"
-    ],
-    customers: [
-      "customersView",
-      "customersPanel",
-      "customers"
-    ],
-    staff: [
-      "staffView",
-      "staffPanel",
-      "staff"
-    ],
-    backup: [
-      "backupView",
-      "backupPanel",
-      "backup"
-    ],
-    finance: [
-      "financeView",
-      "financePanel",
-      "finance"
-    ],
-    schedules: [
-      "schedulesView",
-      "schedulesPanel",
-      "schedules"
-    ]
-  };
-
-  Object.entries(possiblePanels).forEach(([name, ids]) => {
-    ids.forEach(id => {
-      const el = $(id);
-      if (!el) return;
-
-      /*
-        如果該元素本身就是 tab 按鈕，不處理。
-      */
-      if (el.matches("button,[data-tab]")) return;
-
-      el.style.display =
-        name === tabName ? "" : "none";
-    });
-  });
-}
-
 
 async function addCustomer() {
-  if (!currentUser) {
-    alert("請先登入。");
-    return;
-  }
-
-  const name = prompt("請輸入客戶姓名：");
-  if (!name?.trim()) return;
-
-  const phone = prompt("請輸入聯絡電話：") || "";
-  const address = prompt("請輸入地址：") || "";
-  const relation = prompt("請輸入與亡者關係：") || "";
-  const notes = prompt("請輸入備註：") || "";
-
-  const { error } = await supabase
-    .from("customers")
-    .insert({
-      name: name.trim(),
-      phone: phone.trim(),
-      address: address.trim(),
-      relation: relation.trim(),
-      notes: notes.trim(),
-      created_by: currentUser.id
-    });
-
-  if (error) {
-    alert("新增客戶失敗：\n" + friendlyError(error));
-    return;
-  }
-
-  alert("客戶新增成功。");
+  if (!currentUser) return alert("請先登入。");
+  const name = prompt("客戶姓名"); if (!name) return;
+  const phone = prompt("電話（可留空）") || "";
+  const address = prompt("地址（可留空）") || "";
+  const relation = prompt("與亡者關係（可留空）") || "";
+  const notes = prompt("備註（可留空）") || "";
+  const { error } = await supabase.from("customers").insert({ name, phone, address, relation, notes, created_by: currentUser.id });
+  if (error) return alert("新增客戶失敗：" + friendlyError(error));
   await refreshAll();
 }
 
+const FAMILY_RELATIONS = ["配偶","父親","母親","兒子","女兒","兄弟","姊妹","祖父","祖母","孫子","孫女","外孫","外孫女","其他"];
 
-async function addCase() {
-  if (!currentUser) {
-    alert("請先登入。");
-    return;
-  }
-
-  if (!customers.length) {
-    alert("目前沒有客戶資料，請先新增客戶。");
-    return;
-  }
-
-  const customerName = prompt(
-    "請輸入客戶姓名：\n\n" +
-    customers.map((x, i) => `${i + 1}. ${x.name}`).join("\n")
-  );
-
-  if (!customerName?.trim()) return;
-
-  const customer =
-    customers.find(x => x.name === customerName.trim());
-
-  if (!customer) {
-    alert("找不到這位客戶。");
-    return;
-  }
-
-  const caseNumber =
-    prompt("請輸入案件編號：") || "";
-
-  const deceasedName =
-    prompt("請輸入亡者姓名：") || "";
-
-  if (!deceasedName.trim()) {
-    alert("亡者姓名不能空白。");
-    return;
-  }
-
-  const status =
-    prompt("請輸入案件狀態：", "進行中") ||
-    "進行中";
-
-  const contractAmount =
-    Number(
-      prompt("請輸入契約金額：", "0") || 0
-    );
-
-  const notes =
-    prompt("請輸入案件備註：") || "";
-
-  const { error } = await supabase
-    .from("funeral_cases")
-    .insert({
-      customer_id: customer.id,
-      case_number: caseNumber.trim(),
-      deceased_name: deceasedName.trim(),
-      status: status.trim(),
-      contract_amount: contractAmount,
-      notes: notes.trim(),
-      created_by: currentUser.id
-    });
-
-  if (error) {
-    alert("新增案件失敗：\n" + friendlyError(error));
-    return;
-  }
-
-  alert("案件新增成功。");
-  await refreshAll();
+function caseCalendarOptions(selected) {
+  return `<option value="國曆" ${selected === "國曆" ? "selected" : ""}>國曆</option><option value="農曆" ${selected === "農曆" ? "selected" : ""}>農曆</option>`;
 }
 
+function createFamilyRow(data = {}) {
+  const row=document.createElement("div"); row.className="family-row";
+  row.style.cssText="border:1px solid #ddd;border-radius:10px;padding:12px;margin-bottom:10px;background:#fafafa";
+  row.innerHTML=`<div style="display:grid;gap:8px"><input class="familyName" placeholder="家屬姓名" value="${esc(data.family_name||"")}"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input class="familyYear" type="number" min="1" max="200" placeholder="出生民國年" value="${esc(data.birth_roc_year||"")}"><select class="familyRelation"><option value="">請選擇關係</option>${FAMILY_RELATIONS.map(r=>`<option value="${esc(r)}" ${data.relationship===r?"selected":""}>${esc(r)}</option>`).join("")}</select></div><input class="familyPhone" placeholder="電話" value="${esc(data.phone||"")}"><input class="familyAddress" placeholder="地址" value="${esc(data.address||"")}"><textarea class="familyNote" rows="2" placeholder="備註">${esc(data.notes||"")}</textarea><button type="button" class="removeFamilyBtn">刪除這位家屬</button></div>`;
+  row.querySelector(".removeFamilyBtn").style.cssText="background:#dc2626;color:white;border:0;padding:8px;border-radius:8px";
+  row.querySelector(".removeFamilyBtn").onclick=()=>row.remove(); return row;
+}
+
+async function loadCaseFamilyMembers(caseId) {
+  const {data,error}=await supabase.from("case_family_members").select("*").eq("case_id",caseId).order("created_at",{ascending:true});
+  if(error) throw new Error("家屬資料讀取失敗："+friendlyError(error)); return data||[];
+}
+
+async function saveCaseFamilyMembers(caseId, container) {
+  const {error:de}=await supabase.from("case_family_members").delete().eq("case_id",caseId);
+  if(de) throw new Error("舊家屬資料清除失敗："+friendlyError(de));
+  const members=[...container.querySelectorAll(".family-row")].map(row=>({case_id:caseId,family_name:row.querySelector(".familyName")?.value.trim()||"",birth_roc_year:Number(row.querySelector(".familyYear")?.value||0)||null,relationship:row.querySelector(".familyRelation")?.value||null,phone:row.querySelector(".familyPhone")?.value.trim()||"",address:row.querySelector(".familyAddress")?.value.trim()||"",notes:row.querySelector(".familyNote")?.value.trim()||"",created_by:currentUser.id})).filter(x=>x.family_name);
+  if(!members.length)return; const {error}=await supabase.from("case_family_members").insert(members); if(error)throw new Error("家屬資料儲存失敗："+friendlyError(error));
+}
+
+async function openCaseEditor(caseId="", customerId="") {
+  if(!currentUser)return alert("請先登入。");
+  let existingCase=null, family=[];
+  if(caseId){existingCase=cases.find(x=>x.id===caseId);if(!existingCase)return alert("找不到這筆案件資料。");try{family=await loadCaseFamilyMembers(caseId)}catch(e){return alert(e.message)}}
+  const modal=document.createElement("div"); modal.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);overflow:auto;padding:20px";
+  modal.innerHTML=`<div style="max-width:720px;margin:20px auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,.25)"><h2>${caseId?"編輯案件":"新增案件"}</h2><div style="display:grid;gap:12px">
+<label>案件編號<input id="ceNo" style="width:100%" value="${esc(existingCase?.case_number||"")}"></label>
+<label>案件日期<input id="ceDate" type="date" style="width:100%" value="${esc(existingCase?.case_date||"")}"></label>
+<label>委託客戶<select id="ceCustomer" style="width:100%"><option value="">請選擇客戶</option>${customers.map(c=>`<option value="${esc(c.id)}" ${(existingCase?.customer_id||customerId)===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}</select></label>
+<label>亡者姓名<input id="ceName" style="width:100%" value="${esc(existingCase?.deceased_name||"")}"></label>
+<label>亡者性別<select id="ceGender" style="width:100%"><option value="">請選擇</option><option value="男" ${existingCase?.deceased_gender==="男"?"selected":""}>男</option><option value="女" ${existingCase?.deceased_gender==="女"?"selected":""}>女</option><option value="其他" ${existingCase?.deceased_gender==="其他"?"selected":""}>其他</option></select></label>
+<div style="border:1px solid #ddd;border-radius:10px;padding:12px"><b>亡者出生日期</b><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px"><select id="ceBC">${caseCalendarOptions(existingCase?.birth_calendar||"國曆")}</select><input id="ceBY" type="number" min="1" max="200" placeholder="民國年" value="${esc(existingCase?.birth_roc_year||"")}"><input id="ceBM" type="number" min="1" max="12" placeholder="月" value="${esc(existingCase?.birth_month||"")}"><input id="ceBD" type="number" min="1" max="31" placeholder="日" value="${esc(existingCase?.birth_day||"")}"></div></div>
+<div style="border:1px solid #ddd;border-radius:10px;padding:12px"><b>亡者死亡日期</b><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:8px"><select id="ceDC">${caseCalendarOptions(existingCase?.death_calendar||"國曆")}</select><input id="ceDY" type="number" min="1" max="200" placeholder="民國年" value="${esc(existingCase?.death_roc_year||"")}"><input id="ceDM" type="number" min="1" max="12" placeholder="月" value="${esc(existingCase?.death_month||"")}"><input id="ceDD" type="number" min="1" max="31" placeholder="日" value="${esc(existingCase?.death_day||"")}"></div></div>
+<label>案件狀態<select id="ceStatus" style="width:100%"><option value="pending" ${existingCase?.status==="pending"?"selected":""}>處理中</option><option value="active" ${existingCase?.status==="active"?"selected":""}>進行中</option><option value="completed" ${existingCase?.status==="completed"?"selected":""}>已完成</option><option value="cancelled" ${existingCase?.status==="cancelled"?"selected":""}>已取消</option></select></label>
+<label>契約金額<input id="ceAmount" type="number" min="0" style="width:100%" value="${esc(existingCase?.contract_amount||0)}"></label>
+<div style="border:1px solid #ddd;border-radius:10px;padding:12px"><div style="display:flex;justify-content:space-between;align-items:center"><b>家屬資料</b><button type="button" id="ceAddFamily">＋新增家屬</button></div><div id="ceFamily" style="margin-top:12px"></div></div>
+<label>案件備註<textarea id="ceNotes" rows="4" style="width:100%">${esc(existingCase?.notes||"")}</textarea></label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button type="button" id="ceCancel">取消</button><button type="button" id="ceSave">${caseId?"儲存修改":"新增案件"}</button></div><div id="ceStatusMsg"></div></div></div>`;
+  document.body.appendChild(modal);
+  const box=modal.querySelector("#ceFamily"); family.forEach(x=>box.appendChild(createFamilyRow(x)));
+  modal.querySelector("#ceAddFamily").onclick=()=>box.appendChild(createFamilyRow());
+  modal.querySelector("#ceCancel").onclick=()=>modal.remove();
+  modal.querySelector("#ceSave").onclick=async()=>{
+    const msg=modal.querySelector("#ceStatusMsg"), btn=modal.querySelector("#ceSave");
+    const case_number=modal.querySelector("#ceNo").value.trim(), deceased_name=modal.querySelector("#ceName").value.trim();
+    if(!case_number)return msg.textContent="請輸入案件編號。"; if(!deceased_name)return msg.textContent="請輸入亡者姓名。";
+    btn.disabled=true;btn.textContent="儲存中…";
+    try{
+      const payload={case_number,customer_id:modal.querySelector("#ceCustomer").value||null,deceased_name,status:modal.querySelector("#ceStatus").value,contract_amount:Number(modal.querySelector("#ceAmount").value||0),notes:modal.querySelector("#ceNotes").value.trim(),case_date:modal.querySelector("#ceDate").value||null,deceased_gender:modal.querySelector("#ceGender").value||null,birth_calendar:modal.querySelector("#ceBC").value||null,birth_roc_year:Number(modal.querySelector("#ceBY").value||0)||null,birth_month:Number(modal.querySelector("#ceBM").value||0)||null,birth_day:Number(modal.querySelector("#ceBD").value||0)||null,death_calendar:modal.querySelector("#ceDC").value||null,death_roc_year:Number(modal.querySelector("#ceDY").value||0)||null,death_month:Number(modal.querySelector("#ceDM").value||0)||null,death_day:Number(modal.querySelector("#ceDD").value||0)||null};
+      let id=caseId;
+      if(caseId){const {error}=await supabase.from("funeral_cases").update(payload).eq("id",caseId);if(error)throw error}else{payload.created_by=currentUser.id;const {data,error}=await supabase.from("funeral_cases").insert(payload).select("id").single();if(error)throw error;id=data.id}
+      await saveCaseFamilyMembers(id,box); await refreshAll(); modal.remove();
+    }catch(e){msg.textContent="儲存失敗："+friendlyError(e);msg.style.color="#b91c1c";btn.disabled=false;btn.textContent=caseId?"儲存修改":"新增案件"}
+  };
+}
+
+async function addCase(){await openCaseEditor();}
 
 async function addPayment() {
-  if (!currentUser) {
-    alert("請先登入。");
-    return;
-  }
-
-  const amount = Number(
-    prompt("請輸入收款金額：", "0") || 0
-  );
-
-  if (!(amount > 0)) {
-    alert("金額必須大於 0。");
-    return;
-  }
-
-  const paymentDate =
-    prompt(
-      "請輸入收款日期：",
-      new Date().toISOString().slice(0, 10)
-    );
-
-  const description =
-    prompt("請輸入收款說明：") || "";
-
-  const { error } = await supabase
-    .from("payments")
-    .insert({
-      amount,
-      payment_date: paymentDate,
-      description: description.trim(),
-      status: "completed",
-      created_by: currentUser.id
-    });
-
-  if (error) {
-    alert("新增收款失敗：\n" + friendlyError(error));
-    return;
-  }
-
-  alert("收款資料新增成功。");
+  if (!currentUser) return alert("請先登入。");
+  if (!cases.length) return alert("請先新增案件。");
+  const amount = Number(prompt("付款金額") || 0); if (!amount) return;
+  const description = prompt("付款說明") || "";
+  const { error } = await supabase.from("payments").insert({ case_id: cases[0].id, amount, payment_date: new Date().toISOString().slice(0, 10), description, status: "pending", created_by: currentUser.id });
+  if (error) return alert("新增付款失敗：" + friendlyError(error));
   await refreshAll();
 }
-
 
 async function addExpense() {
-  if (!currentUser) {
-    alert("請先登入。");
-    return;
-  }
-
-  const amount = Number(
-    prompt("請輸入支出金額：", "0") || 0
-  );
-
-  if (!(amount > 0)) {
-    alert("金額必須大於 0。");
-    return;
-  }
-
-  const expenseDate =
-    prompt(
-      "請輸入支出日期：",
-      new Date().toISOString().slice(0, 10)
-    );
-
-  const description =
-    prompt("請輸入支出說明：") || "";
-
-  const { error } = await supabase
-    .from("expenses")
-    .insert({
-      amount,
-      expense_date: expenseDate,
-      description: description.trim(),
-      status: "completed",
-      created_by: currentUser.id
-    });
-
-  if (error) {
-    alert("新增支出失敗：\n" + friendlyError(error));
-    return;
-  }
-
-  alert("支出資料新增成功。");
+  if (!currentUser) return alert("請先登入。");
+  if (!cases.length) return alert("請先新增案件。");
+  const amount = Number(prompt("支出金額") || 0); if (!amount) return;
+  const description = prompt("支出說明") || "";
+  const { error } = await supabase.from("expenses").insert({ case_id: cases[0].id, amount, expense_date: new Date().toISOString().slice(0, 10), description, status: "pending", created_by: currentUser.id });
+  if (error) return alert("新增支出失敗：" + friendlyError(error));
   await refreshAll();
 }
-
 
 async function addSchedule() {
-  if (!currentUser) {
-    alert("請先登入。");
-    return;
-  }
-
-  const title =
-    prompt("請輸入行程名稱：");
-
-  if (!title?.trim()) return;
-
-  const startAt =
-    prompt(
-      "請輸入開始時間：",
-      new Date().toISOString().slice(0, 16)
-    );
-
-  const location =
-    prompt("請輸入地點：") || "";
-
-  const notes =
-    prompt("請輸入備註：") || "";
-
-  const { error } = await supabase
-    .from("schedules")
-    .insert({
-      title: title.trim(),
-      start_at: startAt,
-      location: location.trim(),
-      notes: notes.trim(),
-      created_by: currentUser.id
-    });
-
-  if (error) {
-    alert("新增行程失敗：\n" + friendlyError(error));
-    return;
-  }
-
-  alert("行程新增成功。");
+  if (!currentUser) return alert("請先登入。");
+  if (!cases.length) return alert("請先新增案件。");
+  const title = prompt("行程名稱"); if (!title) return;
+  const start_at = prompt("日期時間，例如 2026-09-30 10:00"); if (!start_at) return;
+  const location = prompt("地點") || "";
+  const notes = prompt("備註") || "";
+  const { error } = await supabase.from("schedules").insert({ case_id: cases[0].id, title, start_at, location, notes, created_by: currentUser.id });
+  if (error) return alert("新增行程失敗：" + friendlyError(error));
   await refreshAll();
 }
+
 function bindEvents() {
-  /* 登入 */
   $("loginBtn")?.addEventListener("click", handleLogin);
-
-  $("loginPassword")?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleLogin();
-    }
-  });
-
-  $("loginAccount")?.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      $("loginPassword")?.focus();
-    }
-  });
-
-  /* 登出 */
+  $("password")?.addEventListener("keydown", event => { if (event.key === "Enter") handleLogin(); });
   $("logoutBtn")?.addEventListener("click", handleLogout);
-
-  /* 重新整理 */
-  $("refreshBtn")?.addEventListener("click", async () => {
-    try {
-      await refreshAll();
-    } catch (error) {
-      alert("重新整理失敗：\n" + friendlyError(error));
-    }
-  });
-
-  /* 分頁
-     目前 HTML 使用 data-tab，不使用舊版 .tab
-  */
-  document.querySelectorAll("[data-tab]").forEach(button => {
-    button.addEventListener("click", () => {
-      const tab = button.dataset.tab;
-      if (tab) switchTab(tab);
-    });
-  });
-
-  /* 新增按鈕 */
-  $("addCustomerBtn")?.addEventListener(
-    "click",
-    addCustomer
-  );
-
-  $("addCaseBtn")?.addEventListener(
-    "click",
-    addCase
-  );
-
-  $("addPaymentBtn")?.addEventListener(
-    "click",
-    addPayment
-  );
-
-  $("addExpenseBtn")?.addEventListener(
-    "click",
-    addExpense
-  );
-
-  $("addScheduleBtn")?.addEventListener(
-    "click",
-    addSchedule
-  );
+  $("refreshBtn")?.addEventListener("click", async () => { try { await refreshAll(); setStatus("dashboardStatus", "雲端資料已更新。"); } catch (error) { setStatus("dashboardStatus", friendlyError(error), true); } });
+  document.querySelectorAll(".tab").forEach(button => button.addEventListener("click", () => switchTab(button.dataset.tab)));
+  $("addCustomerBtn")?.addEventListener("click", addCustomer);
+  $("addCaseBtn")?.addEventListener("click", addCase);
+  $("addPaymentBtn")?.addEventListener("click", addPayment);
+  $("addExpenseBtn")?.addEventListener("click", addExpense);
+  $("addScheduleBtn")?.addEventListener("click", addSchedule);
 }
 
+supabase.auth.onAuthStateChange((event) => {
+  console.log("Auth event:", event);
+  if (event === "SIGNED_OUT") {
+    currentUser = null; currentProfile = null; show("mainView", false); show("loginView", true);
+  }
+});
 
-async function checkExistingSession() {
+async function initializeApp() {
+  console.log("瑞賢禮儀社 PWA 啟動");
+  bindEvents();
   try {
-    const {
-      data: { session },
-      error
-    } = await supabase.auth.getSession();
-
-    if (error) {
-      throw error;
-    }
-
-    if (!session?.user) {
-      show("appView", false);
-      show("loginView", true);
-      return;
-    }
-
-    await enterApp(session);
-
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (data?.session && !currentUser) await enterApp(data.session);
+    else { show("mainView", false); show("loginView", true); }
   } catch (error) {
-    console.error(
-      "檢查登入 Session 失敗：",
-      error
-    );
-
-    currentUser = null;
-    currentProfile = null;
-
-    show("appView", false);
-    show("loginView", true);
-
-    setStatus(
-      "loginStatus",
-      "登入狀態檢查失敗：" +
-      friendlyError(error),
-      true
-    );
+    console.error("初始化失敗：", error);
+    show("mainView", false); show("loginView", true);
+    setStatus("loginStatus", "系統初始化失敗：" + friendlyError(error), true);
   }
 }
 
-
-async function initApp() {
-  try {
-    show("appView", false);
-    show("loginView", true);
-
-    setStatus(
-      "loginStatus",
-      "系統初始化中…"
-    );
-
-    await initSupabase();
-
-    /*
-      監聽 Supabase 登入狀態。
-      避免 INITIAL_SESSION 與手動登入互相重複。
-    */
-    supabase.auth.onAuthStateChange(
-      async (event, session) => {
-
-        console.log(
-          "Supabase Auth 狀態：",
-          event
-        );
-
-        if (
-          event === "SIGNED_OUT" ||
-          !session
-        ) {
-          currentUser = null;
-          currentProfile = null;
-
-          show("appView", false);
-          show("loginView", true);
-
-          return;
-        }
-
-        if (
-          event === "SIGNED_IN" &&
-          session?.user
-        ) {
-          /*
-            handleLogin 本身已經呼叫 enterApp。
-            如果是重新整理頁面後取得 Session，
-            則由 checkExistingSession 處理。
-          */
-          if (
-            !currentUser ||
-            currentUser.id !== session.user.id
-          ) {
-            try {
-              await enterApp(session);
-            } catch (error) {
-              console.error(
-                "Auth 狀態登入處理失敗：",
-                error
-              );
-            }
-          }
-        }
-      }
-    );
-
-    bindEvents();
-
-    await checkExistingSession();
-
-    if (!currentUser) {
-      setStatus("loginStatus", "");
-      $("loginAccount")?.focus();
-    }
-
-  } catch (error) {
-    console.error(
-      "瑞賢禮儀社系統初始化失敗：",
-      error
-    );
-
-    show("appView", false);
-    show("loginView", true);
-
-    setStatus(
-      "loginStatus",
-      "系統初始化失敗：" +
-      friendlyError(error),
-      true
-    );
-  }
-}
-
-
-/*
-  等待 HTML 完整載入後才啟動。
-*/
-if (document.readyState === "loading") {
-  document.addEventListener(
-    "DOMContentLoaded",
-    initApp,
-    { once: true }
-  );
-} else {
-  initApp();
-}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initializeApp);
+else initializeApp();
