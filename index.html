@@ -206,7 +206,6 @@ function switchTab(t){
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
 document.querySelectorAll(".bottom-nav button").forEach(b=>b.addEventListener("click",()=>switchTab(b.dataset.tab)));
-document.getElementById("fabNewCase").onclick=()=>openCase();
 document.getElementById("quickCustomers").onclick=()=>switchTab("customers");
 document.getElementById("quickCases").onclick=()=>switchTab("cases");
 document.getElementById("quickSchedule").onclick=()=>switchTab("schedule"); document.getElementById("newScheduleBtn").onclick=()=>openSchedule(); document.getElementById("addSelectedScheduleBtn").onclick=()=>openSchedule();
